@@ -7,6 +7,5 @@
     "mocha": "*",
     "chai": "*"
   },
-  "dependencies": {
-  }
+  "dependencies": {}
 }
