@@ -7,5 +7,7 @@
     "mocha": "*",
     "chai": "*"
   },
-  "dependencies": {}
+  "dependencies": {
+    "crypto-utils": "^0.1.3"
+  }
 }
