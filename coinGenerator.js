@@ -18,13 +18,15 @@ const main = () => {
   // (or don't optimize b/c this will not be a bottleneck)
   const wallet = fileUtil.readWallet()
 
-  // start the mining
-  miner({
-    blockReward: config.blockReward,
-    difficultyLevel: config.difficultyLevel,
-    pk: wallet[0].pk,
-    sk: wallet[0].sk
-  })
+  // conditionally start the mining
+  if (config.mining) {
+    miner({
+      blockReward: config.blockReward,
+      difficultyLevel: config.difficultyLevel,
+      pk: wallet[0].pk,
+      sk: wallet[0].sk
+    })
+  }
 
 }
 
