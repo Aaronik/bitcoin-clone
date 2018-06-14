@@ -10,19 +10,18 @@ const _calculateSupplyFromBlocks = (blocks) => {
 // we're going to just keep a global db on this miner object for now.
 // this'll make for easy information retrieval.
 class Miner {
-  constructor() {
+  constructor () {
     this.blocks = []
     this.supply = 0
   }
 
   // private: add a block to the db
-  _addBlock(block) {
+  _addBlock (block) {
     this.blocks.push(block)
   }
 
   // start up the mining
-  initialize({ blockReward, difficultyLevel, pk, sk }) {
-
+  initialize ({ blockReward, difficultyLevel, pk, sk }) {
     // fire up miner in separate process
     const minerChildProcess = cp.fork(
       './miner-child-process.js',
@@ -40,17 +39,17 @@ class Miner {
   }
 
   // get all blocks from db
-  getBlocks() {
+  getBlocks () {
     return this.blocks
   }
 
   // return total monetary supply created in blocks in db
-  getSupply() {
+  getSupply () {
     return this.supply
   }
 
   // get all unspent transaction outputs
-  getUtxos() {
+  getUtxos () {
     return []
   }
 }

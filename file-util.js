@@ -46,4 +46,3 @@ module.exports = ({ WALLET_PATH, CONFIG_PATH }) => {
 
   return { walletFileExists, createWallet, readConfig, readWallet }
 }
-

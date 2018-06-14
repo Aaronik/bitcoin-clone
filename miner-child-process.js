@@ -9,7 +9,7 @@ let lastBlock // we'll store the previous block here for now
 
 // get the args passed from the caller (like from the CLI unfortunately)
 const args = JSON.parse(process.argv[2])
-const { blockReward, difficultyLevel, pk, sk } = args;
+const { blockReward, difficultyLevel, pk, sk } = args
 
 // private helper methods
 const _mineNewBlock = (pk, sk, rewardTx, hashPrevHeader, difficultyLevel) => {
