@@ -15,6 +15,11 @@ class Miner {
     this.supply = 0
   }
 
+  // private: add a block to the db
+  _addBlock(block) {
+    this.blocks.push(block)
+  }
+
   // start up the mining
   initialize({ blockReward, difficultyLevel, pk, sk }) {
 
@@ -25,18 +30,13 @@ class Miner {
     )
 
     minerChildProcess.on('message', (block) => {
-      this.addBlock(block)
+      this._addBlock(block)
       this.supply = _calculateSupplyFromBlocks(this.blocks)
 
       console.log('got new block:', block)
       console.log('current supply:', this.supply)
       console.log('num blocks:', this.blocks.length)
     })
-  }
-
-  // add a block to the db
-  addBlock(block) {
-    this.blocks.push(block)
   }
 
   // get all blocks from db
