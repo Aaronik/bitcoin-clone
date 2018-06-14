@@ -2,7 +2,8 @@
 const cryptoUtils = require('crypto-utils')
 const hashUtil = require('./hash-util')
 
-const mineNewBlock = (pk, sk, rewardTx, hashPrevHeader, difficultyLevel) => {
+// private helper methods
+const _mineNewBlock = (pk, sk, rewardTx, hashPrevHeader, difficultyLevel) => {
   let blockHeader = {
     hashPrevHeader: hashPrevHeader,
     hashTxs: cryptoUtils.hash(rewardTx),
@@ -22,9 +23,10 @@ const mineNewBlock = (pk, sk, rewardTx, hashPrevHeader, difficultyLevel) => {
   return block
 }
 
-// Export a function so that we may keep variables local to
-// caller.
-module.exports = ({ blockReward, difficultyLevel, pk, sk }) => {
+// public functions
+
+// start up the mining
+const initialize = ({ blockReward, difficultyLevel, pk, sk }) => {
   const rewardTx = {
     inputs: [], // empty for _reward_ tx
     outputs: [{
@@ -43,7 +45,10 @@ module.exports = ({ blockReward, difficultyLevel, pk, sk }) => {
       ? cryptoUtils.hash(lastBlock.header)
       : '0'.repeat(64)
 
-    lastBlock = mineNewBlock(pk, sk, rewardTx, hashPrevHeader, difficultyLevel)
+    lastBlock = _mineNewBlock(pk, sk, rewardTx, hashPrevHeader, difficultyLevel)
     console.log(JSON.stringify(lastBlock))
   }
 }
+
+
+module.exports = { initialize }
