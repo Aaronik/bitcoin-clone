@@ -1,6 +1,7 @@
 // Globals
 const cryptoUtils = require('crypto-utils');
 
+const hashUtil = require('./hash-util')
 const fileUtil = require('./file-util');
 
 const config = fileUtil.readConfig(); // contents of our config
@@ -27,13 +28,16 @@ const main = () => {
     nonce: cryptoUtils.randomBits()
   };
 
+  const hashPrevHeader = '0'.repeat(64);
+
   // and now the block containing the reward tx
-  const blockHeader = {
-    hashPrevHeader: (0).toString(16).repeat(32),
+  let blockHeader = {
+    hashPrevHeader: hashPrevHeader,
     hashTxs: cryptoUtils.hash(rewardTx),
-    bits: config.difficultyLevel,
-    nonce: cryptoUtils.randomBits(),
+    bits: config.difficultyLevel
   };
+
+  blockHeader.nonce = hashUtil.generateProofOfWork(blockHeader, Number(config.difficultyLevel));
 
   const block = {
     header: blockHeader,
