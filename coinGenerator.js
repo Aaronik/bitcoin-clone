@@ -2,6 +2,8 @@
 const WALLET_PATH = './wallet.json' // where's that wallet being saved
 const CONFIG_PATH = './server-config.json' // what's the name of the config file
 
+const app = require('express')()
+
 const fileUtil = require('./file-util')({ CONFIG_PATH, WALLET_PATH })
 const miner = require('./miner')
 
@@ -28,6 +30,16 @@ const main = () => {
     })
   }
 
+  // define the server routes (here for now)
+  app.get('/supply', (req, res) => res.json(miner.getSupply()))
+  app.get('/utxos', (req, res) => res.json(miner.getUtxos()))
+  app.get('/blocks', (req, res) => res.json(miner.getBlocks()))
+
+  // fire up the serving
+  app.listen(
+    config.port,
+    () => console.log('Server started on localhost:', config.port)
+  )
 }
 
 main()
