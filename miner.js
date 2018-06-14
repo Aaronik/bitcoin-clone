@@ -1,3 +1,4 @@
+// Globals
 const cryptoUtils = require('crypto-utils')
 const hashUtil = require('./hash-util')
 
@@ -21,8 +22,9 @@ const mineNewBlock = (pk, sk, rewardTx, hashPrevHeader, difficultyLevel) => {
   return block
 }
 
+// Export a function so that we may keep variables local to
+// caller.
 module.exports = ({ blockReward, difficultyLevel, pk, sk }) => {
-  // now let's create that reward tx
   const rewardTx = {
     inputs: [], // empty for _reward_ tx
     outputs: [{
@@ -34,7 +36,7 @@ module.exports = ({ blockReward, difficultyLevel, pk, sk }) => {
 
   let lastBlock
 
-  // now we just mine blocks forever!
+  // mine blocks forever!
   while (true) {
     // the genesis block's header starts with all 0's
     let hashPrevHeader = lastBlock
