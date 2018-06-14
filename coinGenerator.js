@@ -1,54 +1,64 @@
 // Globals
-const cryptoUtils = require('crypto-utils');
+const cryptoUtils = require('crypto-utils')
 
 const hashUtil = require('./hash-util')
-const fileUtil = require('./file-util');
+const fileUtil = require('./file-util')
 
-const config = fileUtil.readConfig(); // contents of our config
+const config = fileUtil.readConfig() // contents of our config
+
+const mineNewBlock = (pk, sk, rewardTx, hashPrevHeader) => {
+  let blockHeader = {
+    hashPrevHeader: hashPrevHeader,
+    hashTxs: cryptoUtils.hash(rewardTx),
+    bits: config.difficultyLevel
+  }
+
+  blockHeader.nonce = hashUtil.generateProofOfWork(blockHeader, Number(config.difficultyLevel))
+
+  const block = {
+    header: blockHeader,
+    txs: [rewardTx],
+    signer: pk,
+    sig: cryptoUtils.sign({ header: blockHeader }, sk),
+    height: 0 // TODO this OK?
+  }
+
+  return block
+}
 
 // the main funk
 const main = () => {
-
   // first we deal with the wallet file
   if (!fileUtil.walletFileExists()) {
-    fileUtil.createWallet();
+    fileUtil.createWallet()
   }
 
   // TODO optimize by returning from fileUtil.createWallet
   // (or don't optimize b/c this will not be a bottleneck)
-  const wallet = fileUtil.readWallet();
+  const wallet = fileUtil.readWallet()
 
   // now let's create that reward tx
   const rewardTx = {
     inputs: [], // empty for _reward_ tx
     outputs: [{
-      address: wallet.pk,
+      address: wallet[0].pk,
       value: config.blockReward
     }],
     nonce: cryptoUtils.randomBits()
-  };
+  }
 
-  const hashPrevHeader = '0'.repeat(64);
+  let lastBlock
 
-  // and now the block containing the reward tx
-  let blockHeader = {
-    hashPrevHeader: hashPrevHeader,
-    hashTxs: cryptoUtils.hash(rewardTx),
-    bits: config.difficultyLevel
-  };
+  // now we just mine blocks forever!
+  while (true) {
+    // the genesis block's header starts with all 0's
+    let hashPrevHeader = lastBlock
+      ? cryptoUtils.hash(lastBlock.header)
+      : '0'.repeat(64)
 
-  blockHeader.nonce = hashUtil.generateProofOfWork(blockHeader, Number(config.difficultyLevel));
+    lastBlock = mineNewBlock(wallet[0].pk, wallet[0].sk, rewardTx, hashPrevHeader)
+    console.log(JSON.stringify(lastBlock))
+  }
+}
 
-  const block = {
-    header: blockHeader,
-    txs: [{ transaction: rewardTx }],
-    signer: wallet.pk,
-    sig: cryptoUtils.sign({ header: blockHeader }, wallet.sk),
-    height: 0 // TODO this OK?
-  };
-
-  console.log(block);
-
-};
-
-main();
+main()
