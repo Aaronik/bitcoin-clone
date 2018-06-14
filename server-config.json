@@ -1,0 +1,6 @@
+{
+  "difficultyLevel": 2,
+  "blockReward": 50,
+  "port": 1234,
+  "mining": true
+}
