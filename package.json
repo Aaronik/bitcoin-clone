@@ -10,6 +10,6 @@
   "dependencies": {
     "crypto-utils": "github:asyed94/crypto-utils",
     "express": "^4.16.3",
-    "libsodium": "^0.7.3"
+    "lodash": "^4.17.10"
   }
 }

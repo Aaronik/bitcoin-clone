@@ -31,9 +31,9 @@ const main = () => {
   }
 
   // define the server routes (here for now)
-  app.get('/supply', (req, res) => res.json(miner.getSupply()))
-  app.get('/utxos', (req, res) => res.json(miner.getUtxos()))
-  app.get('/blocks', (req, res) => res.json(miner.getBlocks()))
+  app.get('/supply', (req, res) => res.json({ supply: miner.getSupply() }))
+  app.get('/utxos', (req, res) => res.json({ utxos: miner.getUtxos() }))
+  app.get('/blocks', (req, res) => res.json({ blocks: miner.getBlocks() }))
 
   // fire up the serving
   app.listen(

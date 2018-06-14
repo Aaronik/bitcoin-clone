@@ -1,4 +1,5 @@
 const cp = require('child_process')
+const _ = require('lodash')
 
 const _calculateSupplyFromBlocks = (blocks) => {
   return blocks.reduce((supply, block) => {
@@ -7,11 +8,25 @@ const _calculateSupplyFromBlocks = (blocks) => {
   }, 0)
 }
 
+const _getUTXOsFromBlock = (block) => {
+  return _.flatten(block.txs.map((tx, txIdx) => {
+    return tx.outputs.map((output, outputIdx) => {
+      return {
+        txHash: tx.nonce, // string length 64
+        index: outputIdx, // number
+        spent: true,
+        output: output
+      }
+    })
+  }))
+}
+
 // we're going to just keep a global db on this miner object for now.
 // this'll make for easy information retrieval.
 class Miner {
   constructor () {
     this.blocks = []
+    this.utxos = []
     this.supply = 0
   }
 
@@ -31,10 +46,7 @@ class Miner {
     minerChildProcess.on('message', (block) => {
       this._addBlock(block)
       this.supply = _calculateSupplyFromBlocks(this.blocks)
-
-      console.log('got new block:', block)
-      console.log('current supply:', this.supply)
-      console.log('num blocks:', this.blocks.length)
+      this.utxos = this.utxos.concat(_getUTXOsFromBlock(block))
     })
   }
 
@@ -50,7 +62,7 @@ class Miner {
 
   // get all unspent transaction outputs
   getUtxos () {
-    return []
+    return this.utxos
   }
 }
 
