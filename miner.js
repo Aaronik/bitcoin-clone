@@ -21,6 +21,43 @@ const _getUTXOsFromBlock = (block) => {
   }))
 }
 
+const _getUTXOsFromBlocks = (blocks) => {
+  let utxos = {} // { hash + index: utxo }
+
+  // gameplan:
+  //  go through all outputs.
+  //  add each output to hash
+  //  go through all inputs.
+  //  if output is referenced (by tx hash and index)
+  //    remove it from utxos
+  //  return the values of remaining utxos
+
+  blocks.forEach(block => {
+    block.txs.forEach(tx => {
+      tx.outputs.forEach((output, outputIdx) => {
+        const key = tx.nonce + outputIdx
+        console.log('adding utxo for key:', key)
+        utxos[key] = output
+      })
+    })
+  })
+
+  // TODO optimization: a utxo can't be referenced before it's
+  // made, so we might be able to piggyback off of above loop.
+  // Either way, this is certainly very inefficient.
+  blocks.forEach(block => {
+    block.txs.forEach(tx => {
+      tx.inputs.forEach(input => {
+        const key = input.prevTx + input.index
+        console.log('removing utxo for key:', key)
+        delete utxos[key]
+      })
+    })
+  })
+
+  return Object.values(utxos)
+}
+
 // we're going to just keep a global db on this miner object for now.
 // this'll make for easy information retrieval.
 class Miner {
@@ -43,10 +80,13 @@ class Miner {
       [JSON.stringify({ blockReward, difficultyLevel, pk, sk })]
     )
 
+    // TODO Optimization: combine supply and utxos calculations
     minerChildProcess.on('message', (block) => {
+      console.log('miner just created block:', block)
       this._addBlock(block)
       this.supply = _calculateSupplyFromBlocks(this.blocks)
-      this.utxos = this.utxos.concat(_getUTXOsFromBlock(block))
+      // this.utxos = this.utxos.concat(_getUTXOsFromBlock(block))
+      this.utxos = _getUTXOsFromBlocks(this.blocks)
     })
   }
 

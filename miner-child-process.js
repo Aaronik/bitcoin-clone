@@ -34,14 +34,15 @@ const _mineNewBlock = (pk, sk, rewardTx, hashPrevHeader, difficultyLevel) => {
 
 // public functions
 
-// a standard reward transaction
-const rewardTx = {
-  inputs: [], // empty for _reward_ tx
-  outputs: [{
-    address: pk,
-    value: blockReward
-  }],
-  nonce: cryptoUtils.randomBits()
+const _createRewardTx = () => {
+  return {
+    inputs: [], // empty for _reward_ tx
+    outputs: [{
+      address: pk,
+      value: blockReward
+    }],
+    nonce: cryptoUtils.randomBits()
+  }
 }
 
 // mine blocks forever!
@@ -51,6 +52,6 @@ while (true) {
     ? cryptoUtils.hash(lastBlock.header)
     : '0'.repeat(64)
 
-  lastBlock = _mineNewBlock(pk, sk, rewardTx, hashPrevHeader, difficultyLevel)
+  lastBlock = _mineNewBlock(pk, sk, _createRewardTx(), hashPrevHeader, difficultyLevel)
   process.send(lastBlock)
 }
