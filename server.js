@@ -34,6 +34,7 @@ const main = () => {
   app.get('/supply', (req, res) => res.json({ supply: miner.getSupply() }))
   app.get('/utxos', (req, res) => res.json({ utxos: miner.getUtxos() }))
   app.get('/blocks', (req, res) => res.json({ blocks: miner.getBlocks() }))
+  app.get('/accounts', (req, res) => res.json({ accounts: wallet }))
 
   // fire up the serving
   app.listen(

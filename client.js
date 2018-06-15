@@ -52,6 +52,9 @@ readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit'] }, asy
     case 'blocks':
       await fetch(str)
       break
+    case 'accounts':
+      await fetch(str)
+      break
     case 'help':
       printHelp()
       break
