@@ -15,25 +15,28 @@ const buildOptions = (path) => {
   }
 }
 
-const fetch = (path) => {
-  request(buildOptions(path))
-    .then(body => console.log(JSON.stringify(body)))
+async function fetch (path) {
+  return request(buildOptions(path))
+    .then(console.log)
     .catch(console.error)
 }
 
 const printHelp = () => {
-  console.log('usage:')
-  console.log('  supply - fetch supply')
-  console.log('  utxos  - fetch utxos')
-  console.log('  blocks - fetch blocks')
-  console.log('  help   - print this help message')
-  console.log('  exit   - exit the process')
+  console.log(`
+  usage:
+    supply - fetch supply
+    utxos  - fetch utxos
+    blocks - fetch blocks
+    help   - print this help message
+    exit   - exit the process
+    transfer - coming soon!
+  `)
 }
 
 console.log(`Connecting to server at ${config.serverUrl}...`)
 
 // the main REPL
-readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit'] }, (err, args, str, next) => {
+readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit'] }, async function (err, args, str, next) {
   if (err) {
     console.error(err)
     process.exit(1)
@@ -41,13 +44,13 @@ readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit'] }, (er
 
   switch (str) {
     case 'supply':
-      fetch(str)
+      await fetch(str)
       break
     case 'utxos':
-      fetch(str)
+      await fetch(str)
       break
     case 'blocks':
-      fetch(str)
+      await fetch(str)
       break
     case 'help':
       printHelp()
