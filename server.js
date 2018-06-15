@@ -35,6 +35,18 @@ const main = () => {
   app.get('/utxos', (req, res) => res.json({ utxos: miner.getUtxos() }))
   app.get('/blocks', (req, res) => res.json({ blocks: miner.getBlocks() }))
   app.get('/accounts', (req, res) => res.json({ accounts: wallet }))
+  app.get('/createaccount/:name', (req, res) => {
+    const accountName = req.params.name
+
+    // if an account with that name already exists, return an 'error'
+    if (fileUtil.accountAlreadyExists(accountName)) {
+      return res.json({ newAccount: false })
+    }
+
+    const newAccount = fileUtil.generateAccountFromName(accountName)
+    fileUtil.addAccountToWallet(newAccount)
+    res.json({ newAccount })
+  })
 
   // fire up the serving
   app.listen(
