@@ -38,7 +38,7 @@ const main = () => {
   // fire up the serving
   app.listen(
     config.port,
-    () => console.log('Server started on localhost:', config.port)
+    () => console.log(`Server started on localhost:${config.port}...`)
   )
 }
 
