@@ -40,7 +40,7 @@ const getAccountNameFromCommand = (str) => {
 console.log(`Connecting to server at ${config.serverUrl}...`)
 
 // the main REPL
-readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'account create'] }, async function (err, args, str, next) {
+readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'account create', 'account list'] }, async function (err, args, str, next) {
   if (err) {
     console.error(err)
     process.exit(1)
@@ -58,6 +58,9 @@ readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'accou
       break
     case str === 'accounts':
       await fetch(str)
+      break
+    case str === 'account list':
+      await fetch('accounts')
       break
     case /account create/.test(str):
       const accountName = getAccountNameFromCommand(str)
