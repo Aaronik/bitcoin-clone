@@ -37,6 +37,10 @@ const getAccountNameFromCommand = (str) => {
   return str.substring(15)
 }
 
+const getPkFromCommand = (str) => {
+  return str.substring(6)
+}
+
 console.log(`Connecting to server at ${config.serverUrl}...`)
 
 // the main REPL
@@ -65,6 +69,10 @@ readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'accou
     case /account create/.test(str):
       const accountName = getAccountNameFromCommand(str)
       await fetch('createaccount/' + accountName)
+      break
+    case new RegExp('utxos ').test(str):
+      const pk = getPkFromCommand(str)
+      await fetch('utxos/' + pk)
       break
     case str === 'help':
       printHelp()

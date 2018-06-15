@@ -64,6 +64,11 @@ class Miner {
   getUtxos () {
     return this.utxos
   }
+
+  // get all utxos for a specific PK
+  getUtxosForPK (pk) {
+    return this.utxos.filter(utxo => utxo.output.address === pk)
+  }
 }
 
 // public functions

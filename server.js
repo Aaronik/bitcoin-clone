@@ -33,6 +33,7 @@ const main = () => {
   // define the server routes (here for now)
   app.get('/supply', (req, res) => res.json({ supply: miner.getSupply() }))
   app.get('/utxos', (req, res) => res.json({ utxos: miner.getUtxos() }))
+  app.get('/utxos/:pk', (req, res) => res.json({ utxos: miner.getUtxosForPK(req.params.pk) }))
   app.get('/blocks', (req, res) => res.json({ blocks: miner.getBlocks() }))
   app.get('/accounts', (req, res) => res.json({ accounts: wallet }))
   app.get('/createaccount/:name', (req, res) => {
