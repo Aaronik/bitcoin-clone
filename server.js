@@ -36,6 +36,7 @@ const main = () => {
   app.get('/utxos/:pk', (req, res) => res.json({ utxos: miner.getUtxosForPK(req.params.pk) }))
   app.get('/blocks', (req, res) => res.json({ blocks: miner.getBlocks() }))
   app.get('/accounts', (req, res) => res.json({ accounts: wallet }))
+
   app.get('/createaccount/:name', (req, res) => {
     const accountName = req.params.name
 
@@ -47,6 +48,15 @@ const main = () => {
     const newAccount = fileUtil.generateAccountFromName(accountName)
     fileUtil.addAccountToWallet(newAccount)
     res.json({ newAccount })
+  })
+
+  app.post('/addtx', (req, res) => {
+    const tx = req.body
+    console.log(tx)
+    res.json({ standtight: true })
+    if (!miner.validateTx(tx)) return res.json({ successful: false })
+    miner.addTx(tx)
+    return res.json({ successful: true })
   })
 
   // fire up the serving
