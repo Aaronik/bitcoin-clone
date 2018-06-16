@@ -1,10 +1,9 @@
 const cp = require('child_process')
 const _ = require('lodash')
 
-const _calculateSupplyFromBlocks = (blocks) => {
-  return blocks.reduce((supply, block) => {
-    // TODO this assumes reward transaction is first transaction in block
-    return supply + block.txs[0].outputs[0].value
+const calculateSupplyFromUTXOs = (utxos) => {
+  return utxos.reduce((supply, utxo) => {
+    return supply + utxo.output.value
   }, 0)
 }
 
@@ -73,8 +72,8 @@ class Miner {
     // TODO Optimization: combine supply and utxos calculations
     minerChildProcess.on('message', (block) => {
       this._addBlock(block)
-      this.supply = _calculateSupplyFromBlocks(this.blocks)
       this.utxos = _getUTXOsFromBlocks(this.blocks)
+      this.supply = calculateSupplyFromUTXOs(this.utxos)
     })
   }
 
