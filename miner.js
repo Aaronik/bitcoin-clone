@@ -8,19 +8,6 @@ const _calculateSupplyFromBlocks = (blocks) => {
   }, 0)
 }
 
-const _getUTXOsFromBlock = (block) => {
-  return _.flatten(block.txs.map((tx, txIdx) => {
-    return tx.outputs.map((output, outputIdx) => {
-      return {
-        txHash: tx.nonce, // string length 64
-        index: outputIdx, // number
-        spent: true,
-        output: output
-      }
-    })
-  }))
-}
-
 const _getUTXOsFromBlocks = (blocks) => {
   let utxos = {} // { hash + index: utxo }
 
@@ -36,8 +23,12 @@ const _getUTXOsFromBlocks = (blocks) => {
     block.txs.forEach(tx => {
       tx.outputs.forEach((output, outputIdx) => {
         const key = tx.nonce + outputIdx
-        console.log('adding utxo for key:', key)
-        utxos[key] = output
+        utxos[key] = {
+          txHash: tx.nonce, // string length 64
+          index: outputIdx, // number
+          spent: true,
+          output: output
+        }
       })
     })
   })
@@ -49,7 +40,6 @@ const _getUTXOsFromBlocks = (blocks) => {
     block.txs.forEach(tx => {
       tx.inputs.forEach(input => {
         const key = input.prevTx + input.index
-        console.log('removing utxo for key:', key)
         delete utxos[key]
       })
     })
@@ -82,10 +72,8 @@ class Miner {
 
     // TODO Optimization: combine supply and utxos calculations
     minerChildProcess.on('message', (block) => {
-      console.log('miner just created block:', block)
       this._addBlock(block)
       this.supply = _calculateSupplyFromBlocks(this.blocks)
-      // this.utxos = this.utxos.concat(_getUTXOsFromBlock(block))
       this.utxos = _getUTXOsFromBlocks(this.blocks)
     })
   }
