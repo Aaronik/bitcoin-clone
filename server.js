@@ -53,7 +53,7 @@ const main = () => {
   app.post('/addtx', (req, res) => {
     const tx = req.body
     console.log(tx)
-    res.json({ standtight: true })
+    return res.json({ standtight: true })
     if (!miner.validateTx(tx)) return res.json({ successful: false })
     miner.addTx(tx)
     return res.json({ successful: true })
