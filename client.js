@@ -37,7 +37,9 @@ async function post (path, data) {
   const returnVal = await request({
     method: 'POST',
     uri: config.serverUrl + '/' + path,
-    postData: data
+    headers: { "Content-Type": "application/json" },
+    body: data,
+    json: true
   })
 
   return returnVal

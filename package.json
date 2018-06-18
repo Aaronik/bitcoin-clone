@@ -8,6 +8,7 @@
     "chai": "*"
   },
   "dependencies": {
+    "body-parser": "^1.18.3",
     "crypto-utils": "github:asyed94/crypto-utils",
     "express": "^4.16.3",
     "lodash": "^4.17.10",

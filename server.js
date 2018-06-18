@@ -3,6 +3,7 @@ const WALLET_PATH = './wallet.json' // where's that wallet being saved
 const CONFIG_PATH = './server-config.json' // what's the name of the config file
 
 const app = require('express')()
+app.use(require('body-parser').json())
 
 const fileUtil = require('./file-util')({ CONFIG_PATH, WALLET_PATH })
 const miner = require('./miner')
@@ -52,8 +53,6 @@ const main = () => {
 
   app.post('/addtx', (req, res) => {
     const tx = req.body
-    console.log(tx)
-    return res.json({ standtight: true })
     if (!miner.validateTx(tx)) return res.json({ successful: false })
     miner.addTx(tx)
     return res.json({ successful: true })
