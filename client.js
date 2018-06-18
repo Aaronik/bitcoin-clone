@@ -106,7 +106,7 @@ async function generateTx (amount, account1, account2) {
   let outputs = []
   let unaccountedForCoin = amount
 
-  for (let i = 0; i <= account1Utxos.length; i++) {
+  for (let i = 0; i < account1Utxos.length; i++) {
     const utxo = account1Utxos[i]
     unaccountedForCoin -= utxo.output.value
 
@@ -116,13 +116,19 @@ async function generateTx (amount, account1, account2) {
       index: utxo.index,
     }
 
-    const sig = cryptoUtils.sign(input, sk) // TODO need sk
+    const sig = cryptoUtils.sign(input, sk)
 
     const inputWithSignature = Object.assign({}, input, { sig })
 
     inputs.push(inputWithSignature)
 
     if (unaccountedForCoin <= 0) break
+
+    // if user has run out of coin, we'll have to decline the transaction
+    if (i === account1Utxos.length - 1) {
+      console.error('user does not have enough coins!')
+      process.exit(1)
+    }
   }
 
   const paymentOutput = {

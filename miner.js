@@ -3,13 +3,13 @@ const _ = require('lodash')
 
 const _getTotalSpentFromTx = (tx) => {
   return tx.outputs.reduce((total, output) => {
-    return total + output.value
+    return total + Number(output.value)
   }, 0)
 }
 
 const _calculateSupplyFromUTXOs = (utxos) => {
   return utxos.reduce((supply, utxo) => {
-    return supply + utxo.output.value
+    return supply + Number(utxo.output.value)
   }, 0)
 }
 
@@ -105,8 +105,6 @@ class Miner {
   }
 
   validateTx (tx) {
-    console.log('validateTx, tx:', tx)
-
     // tx is valid if:
     //   inputs all map to a valid output
     //   doesn't cause any double mapping to an output
@@ -114,6 +112,7 @@ class Miner {
     //   tx.inputs and tx.outputs are correct shape
 
     // TODO ensure inputs is not empty, ensure shape of inputs, outputs
+    // TODO need to make sure values in outputs and inputs are not negative
     if (
          typeof tx !== 'object'
       || typeof tx.inputs !== 'object'
@@ -129,6 +128,13 @@ class Miner {
       return hashes
     }, {})
 
+    // while we have the utxoHashes, grab the sender's private
+    // key assuming the inputs are pointing to a _sender_'s utxo
+    // TODO when the utxos object exists on the prototype, this
+    // can be extracted to a regular old instance method
+    const key = tx.inputs[0].prevTx + tx.inputs[0].index
+    const senderPk = utxoHashes[key].output.address
+
     // inputs all map to a utxo, no double matching
     const allMapToValidUtxoOnce = tx.inputs.every(input => {
       const key = input.prevTx + input.index
@@ -140,7 +146,6 @@ class Miner {
     if (!allMapToValidUtxoOnce) return false
 
     // sender has enough coin to cover tx
-    const senderPk = Object.values(utxoHashes)[0].output.address
     const senderSupply = _calculateSupplyFromUTXOs(this.getUtxosForPK(senderPk))
     const txTotalSpent = _getTotalSpentFromTx(tx)
     const hasEnoughCoin = senderSupply - txTotalSpent >= 0
