@@ -105,6 +105,8 @@ class Miner {
   }
 
   validateTx (tx) {
+    console.log('validateTx, tx:', tx)
+
     // tx is valid if:
     //   inputs all map to a valid output
     //   doesn't cause any double mapping to an output
@@ -114,8 +116,8 @@ class Miner {
     // TODO ensure inputs is not empty, ensure shape of inputs, outputs
     if (
          typeof tx !== 'object'
-      || typeof tx.inputs !== 'array'
-      || typeof tx.outputs !== 'array'
+      || typeof tx.inputs !== 'object'
+      || typeof tx.outputs !== 'object'
       || typeof tx.txNonce !== 'string'
     ) return false
 
@@ -128,7 +130,7 @@ class Miner {
     }, {})
 
     // inputs all map to a utxo, no double matching
-    const allMapToValidUtxoOnce = tx.inputs.all(input => {
+    const allMapToValidUtxoOnce = tx.inputs.every(input => {
       const key = input.prevTx + input.index
       const mapsToUtxo = !!utxoHashes[key]
       delete utxoHashes[key] // prevents double matching
