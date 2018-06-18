@@ -37,7 +37,6 @@ async function post (path, data) {
   const returnVal = await request({
     method: 'POST',
     uri: config.serverUrl + '/' + path,
-    headers: { "Content-Type": "application/json" },
     body: data,
     json: true
   })
@@ -72,10 +71,41 @@ const getPkFromCommand = (str) => {
 }
 
 const getDeetsFromTransferCommand = (str) => {
-  const [unused, amount, account1, account2] = str.split(' ')
   const params = str.split(' ')
   params.shift() // we don't need the first item of str, which will be 'transfer'
   return params
+}
+
+async function getAccountList () {
+  const utxos = JSON.parse(await fetch('utxos')).utxos
+  const accounts = JSON.parse(await fetch('accounts')).accounts
+
+  // we'll store the accountList differently for speed and conveniency's
+  // sakes, then transfer it to list type later
+  let accountHash = {} // { <pk>: balance, name }
+
+  // initialize the accountHash
+  accounts.forEach(account => {
+    accountHash[account.pk] = { balance: 0, name: account.name }
+  })
+
+  // populate the list
+  utxos.forEach(utxo => {
+    const pk = utxo.output.address
+
+    // incremement the balance
+    accountHash[pk].balance += utxo.output.value
+  })
+
+  // now transform the accountHash into list form
+  let accountList = []
+
+  Object.keys(accountHash).forEach(pk => {
+    const { name, balance } = accountHash[pk]
+    accountList.push({ pk, name, balance })
+  })
+
+  return accountList
 }
 
 async function generateTx (amount, account1, account2) {
@@ -89,7 +119,6 @@ async function generateTx (amount, account1, account2) {
   } catch (e) {
     console.error(e)
     process.exit(1)
-    return
   }
 
   // gameplan:
@@ -103,7 +132,6 @@ async function generateTx (amount, account1, account2) {
   //       keep going through utxos
 
   let inputs = []
-  let outputs = []
   let unaccountedForCoin = amount
 
   for (let i = 0; i < account1Utxos.length; i++) {
@@ -113,7 +141,7 @@ async function generateTx (amount, account1, account2) {
     // create input sans signature so we can sign it
     const input = {
       prevTx: utxo.txHash,
-      index: utxo.index,
+      index: utxo.index
     }
 
     const sig = cryptoUtils.sign(input, sk)
@@ -173,7 +201,8 @@ readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'accou
       await fetchAndPrint(str)
       break
     case str === 'account list':
-      await fetchAndPrint('accounts')
+      const accountList = await getAccountList()
+      console.log(accountList)
       break
     case /account create/.test(str):
       const accountName = getAccountNameFromCommand(str)

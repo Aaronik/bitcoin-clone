@@ -1,5 +1,4 @@
 const cp = require('child_process')
-const _ = require('lodash')
 
 const _getTotalSpentFromTx = (tx) => {
   return tx.outputs.reduce((total, output) => {
@@ -114,10 +113,10 @@ class Miner {
     // TODO ensure inputs is not empty, ensure shape of inputs, outputs
     // TODO need to make sure values in outputs and inputs are not negative
     if (
-         typeof tx !== 'object'
-      || typeof tx.inputs !== 'object'
-      || typeof tx.outputs !== 'object'
-      || typeof tx.txNonce !== 'string'
+      typeof tx !== 'object' ||
+      typeof tx.inputs !== 'object' ||
+      typeof tx.outputs !== 'object' ||
+      typeof tx.txNonce !== 'string'
     ) return false
 
     // TODO Optimization: calculate this every time utxos is updated

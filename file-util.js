@@ -65,7 +65,12 @@ module.exports = ({ WALLET_PATH, CONFIG_PATH }) => {
   }
 
   return {
-    walletFileExists, createWallet, readConfig, readWallet,
-    addAccountToWallet, generateAccountFromName, accountAlreadyExists
+    walletFileExists,
+    createWallet,
+    readConfig,
+    readWallet,
+    addAccountToWallet,
+    generateAccountFromName,
+    accountAlreadyExists
   }
 }
