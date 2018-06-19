@@ -40,7 +40,7 @@ const _createRewardTx = () => {
       address: pk,
       value: blockReward
     }],
-    nonce: cryptoUtils.randomBits()
+    txNonce: cryptoUtils.randomBits()
   }
 }
 
@@ -67,9 +67,8 @@ async function startMining () {
       ? cryptoUtils.hash(lastBlock.header)
       : '0'.repeat(64)
 
-    const txs = mempool.concat([_createRewardTx()])
+    const txs = [_createRewardTx()].concat(mempool)
     lastBlock = _mineNewBlock(pk, sk, txs, hashPrevHeader, difficultyLevel)
-    console.log('miner child just created block:', lastBlock)
     process.send(lastBlock)
 
     await sleepBriefly()

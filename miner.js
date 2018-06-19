@@ -26,9 +26,10 @@ const _getUTXOsFromBlocks = (blocks) => {
   blocks.forEach(block => {
     block.txs.forEach(tx => {
       tx.outputs.forEach((output, outputIdx) => {
-        const key = tx.nonce + outputIdx
+
+        const key = tx.txNonce + outputIdx.toString()
         utxos[key] = {
-          txHash: tx.nonce, // string length 64
+          txHash: tx.txNonce, // string length 64
           index: outputIdx, // number
           spent: true,
           output: output
