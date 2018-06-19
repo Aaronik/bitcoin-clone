@@ -76,10 +76,12 @@ class Miner {
     )
 
     // TODO Optimization: combine supply and utxos calculations
-    minerChildProcess.on('message', (block) => {
+    minerChildProcess.on('message', block => {
       this._addBlock(block)
       this.utxos = _getUTXOsFromBlocks(this.blocks)
       this.supply = _calculateSupplyFromUTXOs(this.utxos)
+      minerChildProcess.send(this.mempool)
+      this.mempool = []
     })
   }
 

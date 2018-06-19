@@ -44,11 +44,12 @@ async function post (path, data) {
   return returnVal
 }
 
-async function postAndPrint (path, data) {
-  return post(path, data)
-    .then(console.log)
-    .catch(console.error)
-}
+// commented out to satisfy linter
+// async function postAndPrint (path, data) {
+//   return post(path, data)
+//     .then(console.log)
+//     .catch(console.error)
+// }
 
 const printHelp = () => {
   console.log(`

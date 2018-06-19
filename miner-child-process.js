@@ -6,16 +6,17 @@ const cryptoUtils = require('crypto-utils')
 const hashUtil = require('./hash-util')
 
 let lastBlock // we'll store the previous block here for now
+let mempool = [] // the calling process will periodically fill this up for us
 
 // get the args passed from the caller (like from the CLI unfortunately)
 const args = JSON.parse(process.argv[2])
 const { blockReward, difficultyLevel, pk, sk } = args
 
 // private helper methods
-const _mineNewBlock = (pk, sk, rewardTx, hashPrevHeader, difficultyLevel) => {
+const _mineNewBlock = (pk, sk, txs, hashPrevHeader, difficultyLevel) => {
   let blockHeader = {
     hashPrevHeader: hashPrevHeader,
-    hashTxs: cryptoUtils.hash(rewardTx),
+    hashTxs: cryptoUtils.hash(txs),
     bits: difficultyLevel
   }
 
@@ -23,7 +24,7 @@ const _mineNewBlock = (pk, sk, rewardTx, hashPrevHeader, difficultyLevel) => {
 
   const block = {
     header: blockHeader,
-    txs: [rewardTx],
+    txs: txs,
     signer: pk,
     sig: cryptoUtils.sign({ header: blockHeader }, sk),
     height: 0
@@ -31,8 +32,6 @@ const _mineNewBlock = (pk, sk, rewardTx, hashPrevHeader, difficultyLevel) => {
 
   return block
 }
-
-// public functions
 
 const _createRewardTx = () => {
   return {
@@ -45,13 +44,36 @@ const _createRewardTx = () => {
   }
 }
 
-// mine blocks forever!
-while (true) {
-  // the genesis block's header starts with all 0's
-  let hashPrevHeader = lastBlock
-    ? cryptoUtils.hash(lastBlock.header)
-    : '0'.repeat(64)
-
-  lastBlock = _mineNewBlock(pk, sk, _createRewardTx(), hashPrevHeader, difficultyLevel)
-  process.send(lastBlock)
+// a simple function to let the thread sleep for a second. This is necessary
+// to allow our process.on listener to function, bc otherwise the while (true)
+// loop will never let up and the listener will never happen
+async function sleepBriefly () {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve('resolved');
+    }, 1);
+  });
 }
+
+process.on('message', mp => {
+  mempool = mp
+})
+
+async function startMining () {
+  // mine blocks forever!
+  while (true) {
+    // the genesis block's header starts with all 0's
+    let hashPrevHeader = lastBlock
+      ? cryptoUtils.hash(lastBlock.header)
+      : '0'.repeat(64)
+
+    const txs = mempool.concat([_createRewardTx()])
+    lastBlock = _mineNewBlock(pk, sk, txs, hashPrevHeader, difficultyLevel)
+    console.log('miner child just created block:', lastBlock)
+    process.send(lastBlock)
+
+    await sleepBriefly()
+  }
+}
+
+startMining()
