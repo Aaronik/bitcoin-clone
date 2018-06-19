@@ -3,6 +3,17 @@ const _ = require('lodash')
 
 const cryptoUtils = require('crypto-utils')
 
+const _createRewardTx = (pk, blockReward) => {
+  return {
+    inputs: [],
+    outputs: [{
+      address: pk,
+      value: blockReward
+    }],
+    txNonce: cryptoUtils.randomBits()
+  }
+}
+
 const _getTotalSpentFromTx = (tx) => {
   return tx.outputs.reduce((total, output) => {
     return total + Number(output.value)
@@ -65,7 +76,8 @@ class Miner {
     this.blocks = []
     this.utxos = []
     this.supply = 0
-    this.minerChildProcess = null
+    this.mempool = []
+    this.minerProcess = null
 
     // private place to store a handy utxo based data transformation
     this._utxoHashes = {}
@@ -77,32 +89,45 @@ class Miner {
   }
 
   // start up the mining
-  initialize ({ blockReward, difficultyLevel, pk, sk }) {
-    // fire up miner in separate process
-    const minerChildProcess = cp.fork(
-      './miner-child-process.js',
-      [JSON.stringify({ blockReward, difficultyLevel, pk, sk })]
-    )
+  startMining ({ blockReward, difficultyLevel, pk, sk }) {
+    this.blockReward = blockReward
+    this.difficultyLevel = difficultyLevel
+    this.pk = pk
+    this.sk = sk
 
-    this.minerChildProcess = minerChildProcess
+    this._startMinerProcess()
+  }
+
+  _startMinerProcess () {
+    const args = {
+      txs: [_createRewardTx(this.pk, this.blockReward)].concat(this.mempool),
+      pk: this.pk,
+      sk: this.sk,
+      blockReward: this.blockReward,
+      difficultyLevel: this.difficultyLevel,
+      prevBlock: _.last(this.blocks)
+    }
+
+    // fire up miner in separate process
+    this.minerProcess = cp.fork('./miner-child-process.js', [JSON.stringify(args)])
 
     // TODO Optimization: combine supply and utxos calculations
-    minerChildProcess.on('message', block => {
+    this.minerProcess.on('message', block => {
       this._addBlock(block)
       this._utxoHashes = _buildUtxoHashesFromBlocks(this.blocks)
       this.utxos = _transformUtxoHashesToUtxos(this._utxoHashes)
       this.supply = _calculateSupplyFromUTXOs(this.utxos)
+      this._startMinerProcess()
     })
+  }
 
-    // and make sure the miner child stops when this process exits
-    const cleanExit = () => {
-      console.log('killing mining fork...')
-      minerChildProcess.kill()
-      process.exit()
-    }
-    process.on('exit', cleanExit)
-    process.on('SIGINT', cleanExit)
-    process.on('SIGTERM', cleanExit)
+  _killMinerProcess () {
+    this.minerProcess.kill()
+  }
+
+  _restartMinerProcess () {
+    if (this.minerProcess) this._killMinerProcess()
+    this._startMinerProcess()
   }
 
   // get all blocks from db
@@ -126,9 +151,12 @@ class Miner {
   }
 
   addTx (tx) {
-    if (this.minerChildProcess) {
-      this.minerChildProcess.send(tx)
-    }
+    if (!this.pk) throw new Error('must start miner before adding transactions!')
+    this.mempool.push(tx)
+    this._restartMinerProcess()
+  }
+
+  triggerNewMinerBlock () {
   }
 
   validateTx (tx) {

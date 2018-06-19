@@ -23,7 +23,7 @@ const main = () => {
 
   // conditionally start the mining
   if (config.mining) {
-    miner.initialize({
+    miner.startMining({
       blockReward: config.blockReward,
       difficultyLevel: config.difficultyLevel,
       pk: wallet[0].pk,
