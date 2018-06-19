@@ -3,6 +3,7 @@ const WALLET_PATH = './wallet.json' // where's that wallet being saved
 const CONFIG_PATH = './server-config.json' // what's the name of the config file
 
 const app = require('express')()
+app.use(require('body-parser').json())
 
 const fileUtil = require('./file-util')({ CONFIG_PATH, WALLET_PATH })
 const miner = require('./miner')
@@ -33,7 +34,29 @@ const main = () => {
   // define the server routes (here for now)
   app.get('/supply', (req, res) => res.json({ supply: miner.getSupply() }))
   app.get('/utxos', (req, res) => res.json({ utxos: miner.getUtxos() }))
+  app.get('/utxos/:pk', (req, res) => res.json({ utxos: miner.getUtxosForPK(req.params.pk) }))
   app.get('/blocks', (req, res) => res.json({ blocks: miner.getBlocks() }))
+  app.get('/accounts', (req, res) => res.json({ accounts: fileUtil.readWallet() }))
+
+  app.get('/createaccount/:name', (req, res) => {
+    const accountName = req.params.name
+
+    // if an account with that name already exists, return an 'error'
+    if (fileUtil.accountAlreadyExists(accountName)) {
+      return res.json({ newAccount: false })
+    }
+
+    const newAccount = fileUtil.generateAccountFromName(accountName)
+    fileUtil.addAccountToWallet(newAccount)
+    res.json({ newAccount })
+  })
+
+  app.post('/addtx', (req, res) => {
+    const tx = req.body && req.body.transact
+    if (!miner.validateTx(tx)) return res.json({ successful: false })
+    miner.addTx(tx)
+    return res.json({ successful: true })
+  })
 
   // fire up the serving
   app.listen(
