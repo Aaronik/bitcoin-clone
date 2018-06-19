@@ -12,22 +12,21 @@ const _calculateSupplyFromUTXOs = (utxos) => {
   }, 0)
 }
 
-const _getUTXOsFromBlocks = (blocks) => {
-  let utxos = {} // { hash + index: utxo }
+const _buildUtxoHashesFromBlocks = (blocks) => {
+  let utxoHashes = {} // { hash + index: utxo }
 
   // gameplan:
   //  go through all outputs.
   //  add each output to hash
   //  go through all inputs.
   //  if output is referenced (by tx hash and index)
-  //    remove it from utxos
-  //  return the values of remaining utxos
+  //    remove it from utxoHashes
 
   blocks.forEach(block => {
     block.txs.forEach(tx => {
       tx.outputs.forEach((output, outputIdx) => {
         const key = tx.txNonce + outputIdx.toString()
-        utxos[key] = {
+        utxoHashes[key] = {
           txHash: tx.txNonce, // string length 64
           index: outputIdx, // number
           spent: false,
@@ -43,13 +42,17 @@ const _getUTXOsFromBlocks = (blocks) => {
   blocks.forEach(block => {
     block.txs.forEach(tx => {
       tx.inputs.forEach(input => {
-        const key = input.prevTx + input.index
-        delete utxos[key]
+        const key = input.prevTx + input.index.toString()
+        delete utxoHashes[key]
       })
     })
   })
 
-  return Object.values(utxos)
+  return utxoHashes
+}
+
+const _transformUtxoHashesToUtxos = (utxoHashes) => {
+  return Object.values(utxoHashes)
 }
 
 // we're going to just keep a global db on this miner object for now.
@@ -60,6 +63,9 @@ class Miner {
     this.utxos = []
     this.supply = 0
     this.minerChildProcess = null
+
+    // private place to store a handy utxo based data transformation
+    this._utxoHashes = {}
   }
 
   // private: add a block to the db
@@ -80,7 +86,8 @@ class Miner {
     // TODO Optimization: combine supply and utxos calculations
     minerChildProcess.on('message', block => {
       this._addBlock(block)
-      this.utxos = _getUTXOsFromBlocks(this.blocks)
+      this._utxoHashes = _buildUtxoHashesFromBlocks(this.blocks)
+      this.utxos = _transformUtxoHashesToUtxos(this._utxoHashes)
       this.supply = _calculateSupplyFromUTXOs(this.utxos)
     })
 
@@ -122,12 +129,6 @@ class Miner {
   }
 
   validateTx (tx) {
-    // tx is valid if:
-    //   inputs all map to a valid output
-    //   doesn't cause any double mapping to an output
-    //   sender has enough supply in their utxos
-    //   tx.inputs and tx.outputs are correct shape
-
     // TODO ensure inputs is not empty, ensure shape of inputs, outputs
     // TODO need to make sure values in outputs and inputs are not negative
     if (
@@ -137,37 +138,41 @@ class Miner {
       typeof tx.txNonce !== 'string'
     ) return false
 
-    // TODO Optimization: calculate this every time utxos is updated
-    // and store that information on the prototype
-    const utxoHashes = this.utxos.reduce((hashes, utxo) => {
-      const key = utxo.txHash + utxo.index
-      hashes[key] = utxo
-      return hashes
-    }, {})
-
-    // while we have the utxoHashes, grab the sender's private
-    // key assuming the inputs are pointing to a _sender_'s utxo
-    // TODO when the utxos object exists on the prototype, this
-    // can be extracted to a regular old instance method
-    const key = tx.inputs[0].prevTx + tx.inputs[0].index
-    const senderPk = utxoHashes[key].output.address
+    // duplicate our stored _utxoHashes so we can mangle it
+    const utxoHashes = Object.assign({}, this._utxoHashes)
 
     // inputs all map to a utxo, no double matching
-    const allMapToValidUtxoOnce = tx.inputs.every(input => {
+    const allInputsMapToValidUtxoOnce = tx.inputs.every(input => {
       const key = input.prevTx + input.index.toString()
       const mapsToUtxo = !!utxoHashes[key]
       delete utxoHashes[key] // prevents double matching
       return mapsToUtxo
     })
 
-    if (!allMapToValidUtxoOnce) return true
+    if (!allInputsMapToValidUtxoOnce) return false
+
+    const inputTotalValue = tx.inputs.reduce((total, input) => {
+      const key = input.prevTx + input.index.toString() // TODO abstract
+      return total + this._utxoHashes[key].output.value
+    }, 0)
+
+    const outputTotalValue = tx.outputs.reduce((total, output) => {
+      return total + Number(output.value)
+    }, 0)
+
+    const inputIsLessThanOutput = inputTotalValue < outputTotalValue
+
+    if (inputIsLessThanOutput) return false
+
+    const key = tx.inputs[0].prevTx + tx.inputs[0].index
+    const senderPk = this._utxoHashes[key].output.address
 
     // sender has enough coin to cover tx
     const senderSupply = _calculateSupplyFromUTXOs(this.getUtxosForPK(senderPk))
     const txTotalSpent = _getTotalSpentFromTx(tx)
     const hasEnoughCoin = senderSupply - txTotalSpent >= 0
 
-    if (!hasEnoughCoin) return true
+    if (!hasEnoughCoin) return false
 
     return true
   }
