@@ -26,7 +26,6 @@ const _getUTXOsFromBlocks = (blocks) => {
   blocks.forEach(block => {
     block.txs.forEach(tx => {
       tx.outputs.forEach((output, outputIdx) => {
-
         const key = tx.txNonce + outputIdx.toString()
         utxos[key] = {
           txHash: tx.txNonce, // string length 64
@@ -84,6 +83,16 @@ class Miner {
       minerChildProcess.send(this.mempool)
       this.mempool = []
     })
+
+    // and make sure the miner child stops when this process exits
+    const cleanExit = () => {
+      console.log('killing mining fork...')
+      minerChildProcess.kill()
+      process.exit()
+    }
+    process.on('exit', cleanExit)
+    process.on('SIGINT', cleanExit)
+    process.on('SIGTERM', cleanExit)
   }
 
   // get all blocks from db
