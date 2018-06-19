@@ -8,14 +8,14 @@ const cryptoUtils = require('crypto-utils')
 const fileUtil = require('./file-util')({ CONFIG_PATH })
 const config = fileUtil.readConfig()
 
-const getSKByPKFromWallet = (wallet, pk) => {
-  const account = wallet.find(account => {
-    return account.pk === pk
+const getAccountByName = (accounts, name) => {
+  const account = accounts.find(account => {
+    return account.name === name
   })
 
-  if (!account) throw new Error(`account with pk ${pk} not found!`)
+  if (!account) throw new Error(`account for ${name} not found!`)
 
-  return account.sk
+  return account
 }
 
 async function fetch (path) {
@@ -62,11 +62,11 @@ const printHelp = () => {
   `)
 }
 
-const getAccountNameFromCommand = (str) => {
+const getAccountNameFromCreateAccountCommand = (str) => {
   return str.substring(15)
 }
 
-const getPkFromCommand = (str) => {
+const getPkFromUtxosCommand = (str) => {
   return str.substring(6)
 }
 
@@ -86,15 +86,15 @@ async function getAccountList () {
 
   // initialize the accountHash
   accounts.forEach(account => {
-    accountHash[account.pk] = { balance: 0, name: account.name }
+    accountHash[account.pk] = { balance: '0', name: account.name }
   })
 
   // populate the list
   utxos.forEach(utxo => {
     const pk = utxo.output.address
 
-    // incremement the balance
-    accountHash[pk].balance += utxo.output.value
+    // incremement the balance. Note the indirection is b/c we need balance to be a string
+    accountHash[pk].balance = (Number(accountHash[pk].balance) + Number(utxo.output.value)).toString()
   })
 
   // now transform the accountHash into list form
@@ -108,18 +108,20 @@ async function getAccountList () {
   return accountList
 }
 
-async function generateTx (amount, account1, account2) {
+async function generateTx (amount, senderName, receiverName) {
   const accounts = JSON.parse(await fetch('accounts')).accounts
-  const account1Utxos = JSON.parse(await fetch('utxos/' + account1)).utxos
 
-  let sk
+  let senderAccount, receiverAccount
 
   try {
-    sk = getSKByPKFromWallet(accounts, account1)
+    senderAccount = getAccountByName(accounts, senderName)
+    receiverAccount = getAccountByName(accounts, receiverName)
   } catch (e) {
     console.error(e)
     process.exit(1)
   }
+
+  const account1Utxos = JSON.parse(await fetch('utxos/' + senderAccount.pk)).utxos
 
   // gameplan:
   //   start keeping track of how much coin is left needing to be accounted for (remainingUnaccountedFor)
@@ -144,7 +146,7 @@ async function generateTx (amount, account1, account2) {
       index: utxo.index
     }
 
-    const sig = cryptoUtils.sign(input, sk)
+    const sig = cryptoUtils.sign(input, senderAccount.sk)
 
     const inputWithSignature = Object.assign({}, input, { sig })
 
@@ -160,12 +162,12 @@ async function generateTx (amount, account1, account2) {
   }
 
   const paymentOutput = {
-    address: account2,
+    address: receiverAccount.pk,
     value: amount
   }
 
   const selfOutput = {
-    address: account1,
+    address: senderAccount.pk,
     value: 0 - unaccountedForCoin
   }
 
@@ -181,7 +183,7 @@ async function generateTx (amount, account1, account2) {
 console.log(`Connecting to server at ${config.serverUrl}...`)
 
 // the main REPL
-readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'account create', 'account list', 'transfer 5 bob phil'] }, async function (err, args, str, next) {
+readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'account create', 'account list', 'transfer 55 miner goku'] }, async function (err, args, str, next) {
   if (err) {
     console.error(err)
     process.exit(1)
@@ -202,20 +204,21 @@ readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'accou
       break
     case str === 'account list':
       const accountList = await getAccountList()
-      console.log(accountList)
+      console.log(JSON.stringify(accountList))
       break
     case /account create/.test(str):
-      const accountName = getAccountNameFromCommand(str)
+      const accountName = getAccountNameFromCreateAccountCommand(str)
       await fetchAndPrint('createaccount/' + accountName)
       break
     case new RegExp('utxos ').test(str):
-      const pk = getPkFromCommand(str)
+      const pk = getPkFromUtxosCommand(str)
       await fetchAndPrint('utxos/' + pk)
       break
     case new RegExp('transfer ').test(str):
-      const [amount, account1, account2] = getDeetsFromTransferCommand(str)
-      const tx = await generateTx(amount, account1, account2)
-      await postAndPrint('addtx', tx)
+      const [amount, senderName, receiverName] = getDeetsFromTransferCommand(str)
+      const tx = await generateTx(amount, senderName, receiverName)
+      const resp = await post('addtx', tx)
+      console.log(JSON.stringify(resp))
       break
     case str === 'help':
       printHelp()
