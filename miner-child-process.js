@@ -50,9 +50,9 @@ const _createRewardTx = () => {
 async function sleepBriefly () {
   return new Promise(resolve => {
     setTimeout(() => {
-      resolve('resolved');
-    }, 1);
-  });
+      resolve('resolved')
+    }, 1)
+  })
 }
 
 process.on('message', mp => {
