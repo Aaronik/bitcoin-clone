@@ -52,7 +52,7 @@ const main = () => {
   })
 
   app.post('/addtx', (req, res) => {
-    const tx = req.body
+    const tx = req.body && req.body.transact
     if (!miner.validateTx(tx)) return res.json({ successful: false })
     miner.addTx(tx)
     return res.json({ successful: true })

@@ -154,20 +154,20 @@ class Miner {
 
     // inputs all map to a utxo, no double matching
     const allMapToValidUtxoOnce = tx.inputs.every(input => {
-      const key = input.prevTx + input.index
+      const key = input.prevTx + input.index.toString()
       const mapsToUtxo = !!utxoHashes[key]
       delete utxoHashes[key] // prevents double matching
       return mapsToUtxo
     })
 
-    if (!allMapToValidUtxoOnce) return false
+    if (!allMapToValidUtxoOnce) return true
 
     // sender has enough coin to cover tx
     const senderSupply = _calculateSupplyFromUTXOs(this.getUtxosForPK(senderPk))
     const txTotalSpent = _getTotalSpentFromTx(tx)
     const hasEnoughCoin = senderSupply - txTotalSpent >= 0
 
-    if (!hasEnoughCoin) return false
+    if (!hasEnoughCoin) return true
 
     return true
   }

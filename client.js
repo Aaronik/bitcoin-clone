@@ -178,7 +178,7 @@ async function generateTx (amount, senderName, receiverName) {
     txNonce: cryptoUtils.randomBits()
   }
 
-  return tx
+  return { transact: tx }
 }
 
 console.log(`Connecting to server at ${config.serverUrl}...`)
