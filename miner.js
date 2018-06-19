@@ -30,7 +30,7 @@ const _getUTXOsFromBlocks = (blocks) => {
         utxos[key] = {
           txHash: tx.txNonce, // string length 64
           index: outputIdx, // number
-          spent: true,
+          spent: false,
           output: output
         }
       })
@@ -59,7 +59,7 @@ class Miner {
     this.blocks = []
     this.utxos = []
     this.supply = 0
-    this.mempool = []
+    this.minerChildProcess = null
   }
 
   // private: add a block to the db
@@ -75,13 +75,13 @@ class Miner {
       [JSON.stringify({ blockReward, difficultyLevel, pk, sk })]
     )
 
+    this.minerChildProcess = minerChildProcess
+
     // TODO Optimization: combine supply and utxos calculations
     minerChildProcess.on('message', block => {
       this._addBlock(block)
       this.utxos = _getUTXOsFromBlocks(this.blocks)
       this.supply = _calculateSupplyFromUTXOs(this.utxos)
-      minerChildProcess.send(this.mempool)
-      this.mempool = []
     })
 
     // and make sure the miner child stops when this process exits
@@ -113,6 +113,12 @@ class Miner {
   // get all utxos for a specific PK
   getUtxosForPK (pk) {
     return this.utxos.filter(utxo => utxo.output.address === pk)
+  }
+
+  addTx (tx) {
+    if (this.minerChildProcess) {
+      this.minerChildProcess.send(tx)
+    }
   }
 
   validateTx (tx) {
@@ -164,10 +170,6 @@ class Miner {
     if (!hasEnoughCoin) return false
 
     return true
-  }
-
-  addTx (tx) {
-    this.mempool.push(tx)
   }
 }
 

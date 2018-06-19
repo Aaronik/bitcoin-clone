@@ -209,7 +209,8 @@ readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'accou
       break
     case /account create/.test(str):
       const accountName = getAccountNameFromCreateAccountCommand(str)
-      await fetchAndPrint('createaccount/' + accountName)
+      const newAccountObj = await fetch('createaccount/' + accountName)
+      console.log(JSON.stringify(JSON.parse(newAccountObj).newAccount))
       break
     case new RegExp('utxos ').test(str):
       const pk = getPkFromUtxosCommand(str)

@@ -48,8 +48,7 @@ const main = () => {
 
     const newAccount = fileUtil.generateAccountFromName(accountName)
     fileUtil.addAccountToWallet(newAccount)
-    res.json(newAccount)
-    // res.json({ newAccount })
+    res.json({ newAccount })
   })
 
   app.post('/addtx', (req, res) => {

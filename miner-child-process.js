@@ -55,8 +55,8 @@ async function sleepBriefly () {
   })
 }
 
-process.on('message', mp => {
-  mempool = mp
+process.on('message', tx => {
+  mempool.push(tx)
 })
 
 async function startMining () {
@@ -70,6 +70,7 @@ async function startMining () {
     const txs = [_createRewardTx()].concat(mempool)
     lastBlock = _mineNewBlock(pk, sk, txs, hashPrevHeader, difficultyLevel)
     process.send(lastBlock)
+    mempool = []
 
     await sleepBriefly()
   }
