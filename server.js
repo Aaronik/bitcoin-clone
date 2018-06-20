@@ -7,6 +7,7 @@ app.use(require('body-parser').json())
 
 const fileUtil = require('./file-util')({ CONFIG_PATH, WALLET_PATH })
 const miner = require('./miner')
+const db = require('./db')
 
 const config = fileUtil.readConfig() // contents of our config
 
@@ -27,15 +28,16 @@ const main = () => {
       blockReward: config.blockReward,
       difficultyLevel: config.difficultyLevel,
       pk: wallet[0].pk,
-      sk: wallet[0].sk
+      sk: wallet[0].sk,
+      db: db
     })
   }
 
   // define the server routes (here for now)
-  app.get('/supply', (req, res) => res.json({ supply: miner.getSupply() }))
-  app.get('/utxos', (req, res) => res.json({ utxos: miner.getUtxos() }))
-  app.get('/utxos/:pk', (req, res) => res.json({ utxos: miner.getUtxosForPK(req.params.pk) }))
-  app.get('/blocks', (req, res) => res.json({ blocks: miner.getBlocks() }))
+  app.get('/supply', (req, res) => res.json({ supply: db.getSupply() }))
+  app.get('/utxos', (req, res) => res.json({ utxos: db.getUtxos() }))
+  app.get('/utxos/:pk', (req, res) => res.json({ utxos: db.getUtxosForPK(req.params.pk) }))
+  app.get('/blocks', (req, res) => res.json({ blocks: db.getBlocks() }))
   app.get('/accounts', (req, res) => res.json({ accounts: fileUtil.readWallet() }))
 
   app.get('/createaccount/:name', (req, res) => {

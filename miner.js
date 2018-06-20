@@ -1,7 +1,8 @@
 const cp = require('child_process')
 const _ = require('lodash')
-
 const cryptoUtils = require('crypto-utils')
+
+const blockUtil = require('./block-util')
 
 const _createRewardTx = (pk, blockReward) => {
   return {
@@ -20,62 +21,10 @@ const _getTotalSpentFromTx = (tx) => {
   }, 0)
 }
 
-const _calculateSupplyFromUTXOs = (utxos) => {
-  return utxos.reduce((supply, utxo) => {
-    return supply + Number(utxo.output.value)
-  }, 0)
-}
-
-const _buildUtxoHashesFromBlocks = (blocks) => {
-  let utxoHashes = {} // { hash + index: utxo }
-
-  // gameplan:
-  //  go through all outputs.
-  //  add each output to hash
-  //  go through all inputs.
-  //  if output is referenced (by tx hash and index)
-  //    remove it from utxoHashes
-
-  blocks.forEach(block => {
-    block.txs.forEach(tx => {
-      tx.outputs.forEach((output, outputIdx) => {
-        const key = tx.txNonce + outputIdx.toString()
-        utxoHashes[key] = {
-          txHash: tx.txNonce, // string length 64
-          index: outputIdx, // number
-          spent: false,
-          output: output
-        }
-      })
-    })
-  })
-
-  // TODO optimization: a utxo can't be referenced before it's
-  // made, so we might be able to piggyback off of above loop.
-  // Either way, this is certainly very inefficient.
-  blocks.forEach(block => {
-    block.txs.forEach(tx => {
-      tx.inputs.forEach(input => {
-        const key = input.prevTx + input.index.toString()
-        delete utxoHashes[key]
-      })
-    })
-  })
-
-  return utxoHashes
-}
-
-const _transformUtxoHashesToUtxos = (utxoHashes) => {
-  return Object.values(utxoHashes)
-}
-
 // we're going to just keep a global db on this miner object for now.
 // this'll make for easy information retrieval.
 class Miner {
   constructor () {
-    this.blocks = []
-    this.utxos = []
-    this.supply = 0
     this.mempool = []
     this.minerProcess = null
 
@@ -83,80 +32,20 @@ class Miner {
     this._utxoHashes = {}
   }
 
-  // private: add a block to the db
-  _addBlock (block) {
-    this.blocks.push(block)
-  }
-
   // start up the mining
-  startMining ({ blockReward, difficultyLevel, pk, sk }) {
+  startMining ({ blockReward, difficultyLevel, pk, sk, db }) {
     this.blockReward = blockReward
     this.difficultyLevel = difficultyLevel
     this.pk = pk
     this.sk = sk
-
+    this.db = db
     this._startMinerProcess()
-  }
-
-  _startMinerProcess () {
-    const args = {
-      txs: [_createRewardTx(this.pk, this.blockReward)].concat(this.mempool),
-      pk: this.pk,
-      sk: this.sk,
-      blockReward: this.blockReward,
-      difficultyLevel: this.difficultyLevel,
-      prevBlock: _.last(this.blocks)
-    }
-
-    // fire up miner in separate process
-    this.minerProcess = cp.fork('./miner-child-process.js', [JSON.stringify(args)])
-
-    // TODO Optimization: combine supply and utxos calculations
-    this.minerProcess.on('message', block => {
-      this._addBlock(block)
-      this._utxoHashes = _buildUtxoHashesFromBlocks(this.blocks)
-      this.utxos = _transformUtxoHashesToUtxos(this._utxoHashes)
-      this.supply = _calculateSupplyFromUTXOs(this.utxos)
-      this._startMinerProcess()
-    })
-  }
-
-  _killMinerProcess () {
-    this.minerProcess.kill()
-  }
-
-  _restartMinerProcess () {
-    if (this.minerProcess) this._killMinerProcess()
-    this._startMinerProcess()
-  }
-
-  // get all blocks from db
-  getBlocks () {
-    return this.blocks
-  }
-
-  // return total monetary supply created in blocks in db
-  getSupply () {
-    return this.supply
-  }
-
-  // get all unspent transaction outputs
-  getUtxos () {
-    return this.utxos
-  }
-
-  // get all utxos for a specific PK
-  getUtxosForPK (pk) {
-    return this.utxos.filter(utxo => utxo.output.address === pk)
   }
 
   addTx (tx) {
     if (!this.pk) throw new Error('must start miner before adding transactions!')
     this.mempool.push(tx)
     this._restartMinerProcess()
-  }
-
-  triggerNewMinerBlock () {
   }
 
   validateTx (tx) {
@@ -203,7 +92,7 @@ class Miner {
     /** Enough sender supply **/
     const key = tx.inputs[0].prevTx + tx.inputs[0].index
     const senderPk = this._utxoHashes[key].output.address
-    const senderSupply = _calculateSupplyFromUTXOs(this.getUtxosForPK(senderPk))
+    const senderSupply = blockUtil.calculateSupplyFromUTXOs(this.db.getUtxosForPK(senderPk))
     const txTotalSpent = _getTotalSpentFromTx(tx)
     const hasEnoughCoin = senderSupply - txTotalSpent >= 0
 
@@ -217,6 +106,35 @@ class Miner {
     if (!hasCorrectSignatures) return false
 
     return true
+  }
+
+  _startMinerProcess () {
+    const args = {
+      txs: [_createRewardTx(this.pk, this.blockReward)].concat(this.mempool),
+      pk: this.pk,
+      sk: this.sk,
+      blockReward: this.blockReward,
+      difficultyLevel: this.difficultyLevel,
+      prevBlock: _.last(this.db.blocks)
+    }
+
+    // fire up miner in separate process
+    this.minerProcess = cp.fork('./miner-child-process.js', [JSON.stringify(args)])
+
+    this.minerProcess.on('message', block => {
+      this.db.addBlock(block)
+      this._utxoHashes = blockUtil.buildUtxoHashesFromBlocks(this.db.blocks)
+      this._startMinerProcess()
+    })
+  }
+
+  _killMinerProcess () {
+    this.minerProcess.kill()
+  }
+
+  _restartMinerProcess () {
+    if (this.minerProcess) this._killMinerProcess()
+    this._startMinerProcess()
   }
 }
 
