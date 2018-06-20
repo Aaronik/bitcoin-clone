@@ -77,6 +77,13 @@ const main = () => {
     return res.json({ successful: true })
   })
 
+  app.post('/addblock', (req, res) => {
+    const block = req.body && req.body.block
+    if (!db.validateBlock(block)) return res.json({ successful: false })
+    db.addBlock(block)
+    return res.json({ successful: true })
+  })
+
   // attach to the rest of the nodes in the world
   if (db.validateNode(config.seedNode)) db.addNode(config.seedNode)
   nodeUtil.getNodeList(config.seedNode).then(nodesJson => {

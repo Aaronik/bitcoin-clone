@@ -63,6 +63,16 @@ class Db {
     return this.utxos.filter(utxo => utxo.output.address === pk)
   }
 
+  validateBlock (block) {
+    const exists = !!block
+    if (!exists) return false
+
+    const correctSig = cryptoUtils.verify(block.header, block.sig, block.signer)
+    if (!correctSig) return false
+
+    return true
+  }
+
   /** Other stuff **/
 
   // add another bitcoin client in the form '<ip>:<port>'
