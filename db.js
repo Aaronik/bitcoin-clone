@@ -2,6 +2,7 @@
 // it's using
 
 const _ = require('lodash')
+const cryptoUtils = require('crypto-utils')
 
 const blockUtil = require('./block-util')
 
@@ -25,6 +26,15 @@ class Db {
   // get all blocks from db
   getBlocks () {
     return this.blocks
+  }
+
+  getLatestBlockMetaData () {
+    if (!this.blocks.length) return { index: null, hash: null }
+
+    return {
+      index: this.blocks.length - 1,
+      hash: cryptoUtils.hash(_.last(this.blocks).header)
+    }
   }
 
   // return total monetary supply created in blocks in db
