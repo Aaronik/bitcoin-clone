@@ -10,7 +10,10 @@ const miner = require('./miner')
 const db = require('./db')
 const nodeUtil = require('./node-util')
 
-const config = fileUtil.readConfig() // contents of our config
+const config = fileUtil.readConfig()
+
+// we need this to prevent recursion sending our own node info
+const selfIp = `${config.ip}:${config.port}`
 
 // the main funk
 const main = () => {
@@ -65,8 +68,10 @@ const main = () => {
 
   app.post('/addtx', (req, res) => {
     const tx = req.body && req.body.transact
+    console.log('post received to /addtx, tx:', tx)
     if (!miner.validateTx(tx)) return res.json({ successful: false })
     miner.addTx(tx)
+    nodeUtil.broadcastTx(tx, db.getNodeListWithout(selfIp))
     return res.json({ successful: true })
   })
 
@@ -86,7 +91,7 @@ const main = () => {
 
   // attach to the rest of the nodes in the world
   if (db.validateNode(config.seedNode)) db.addNode(config.seedNode)
-  nodeUtil.getNodeList(config.seedNode).then(nodesJson => {
+  nodeUtil.fetchNodeList(config.seedNode).then(nodesJson => {
     const nodes = JSON.parse(nodesJson).nodes
     nodes.forEach(node => {
       if (db.validateNode(node)) db.addNode(node)

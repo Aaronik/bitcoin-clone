@@ -105,6 +105,9 @@ class Miner {
 
     if (!hasCorrectSignatures) return false
 
+    const alreadyExists = this.mempool.some(t => tx.txNonce === t.nonce)
+    if (alreadyExists) return false
+
     return true
   }
 
