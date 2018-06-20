@@ -8,6 +8,7 @@ app.use(require('body-parser').json())
 const fileUtil = require('./file-util')({ CONFIG_PATH, WALLET_PATH })
 const miner = require('./miner')
 const db = require('./db')
+const nodeUtil = require('./node-util')
 
 const config = fileUtil.readConfig() // contents of our config
 
@@ -34,6 +35,7 @@ const main = () => {
   }
 
   // define the server routes (here for now)
+  app.get('/nodelist', (req, res) => res.json({ nodes: db.getNodeList() }))
   app.get('/supply', (req, res) => res.json({ supply: db.getSupply() }))
   app.get('/utxos', (req, res) => res.json({ utxos: db.getUtxos() }))
   app.get('/utxos/:pk', (req, res) => res.json({ utxos: db.getUtxosForPK(req.params.pk) }))
@@ -58,6 +60,23 @@ const main = () => {
     if (!miner.validateTx(tx)) return res.json({ successful: false })
     miner.addTx(tx)
     return res.json({ successful: true })
+  })
+
+  app.post('/join', (req, res) => {
+    const node = req.body && req.body.node
+    if (!db.validateNode(node)) return res.json({ successful: false })
+    db.addNode(node)
+    return res.json({ successful: true })
+  })
+
+  // attach to the rest of the nodes in the world
+  if (db.validateNode(config.seedNode)) db.addNode(config.seedNode)
+  nodeUtil.getNodeList(config.seedNode).then(nodesJson => {
+    const nodes = JSON.parse(nodesJson).nodes
+    nodes.forEach(node => {
+      if (db.validateNode(node)) db.addNode(node)
+      nodeUtil.informNodeOfExistence(node, config.ip, config.port)
+    })
   })
 
   // fire up the serving

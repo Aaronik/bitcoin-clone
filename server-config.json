@@ -2,5 +2,7 @@
   "difficultyLevel": 2,
   "blockReward": 50,
   "port": 1234,
-  "mining": true
+  "mining": true,
+  "ip": "127.0.0.1",
+  "seedNode": "127.0.0.1:1234"
 }
