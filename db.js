@@ -56,7 +56,15 @@ class Db {
 
   // validate whether a node is legit or not
   validateNode (node) {
-    // TODO make sure format is correct
+    const exists = !!node
+    if (!exists) return false
+
+    const isStr = typeof node === 'string'
+    if (!isStr) return false
+
+    const correctShape = node.split(':').length === 2
+    if (!correctShape) return false
+
     const alreadyExists = _.includes(this.nodeList, node)
     if (alreadyExists) return false
 
