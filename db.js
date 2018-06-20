@@ -28,6 +28,12 @@ class Db {
     return this.blocks
   }
 
+  getBlockRange (startIndex, endIndex) {
+    if (startIndex < 0) return null
+    if (endIndex > this.blocks.length - 1) return null
+    return this.blocks.slice(startIndex, endIndex)
+  }
+
   getLatestBlockMetaData () {
     if (!this.blocks.length) return { index: null, hash: null }
 

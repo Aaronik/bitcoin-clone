@@ -43,6 +43,13 @@ const main = () => {
   app.get('/latestblock', (req, res) => res.json( db.getLatestBlockMetaData() ))
   app.get('/accounts', (req, res) => res.json({ accounts: fileUtil.readWallet() }))
 
+  app.get('/blocks/:startIndex/:endIndex', (req, res) => {
+    const { startIndex, endIndex } = req.params
+    return res.json({
+      blocks: db.getBlockRange(startIndex, endIndex)
+    })
+  })
+
   app.get('/createaccount/:name', (req, res) => {
     const accountName = req.params.name
 
