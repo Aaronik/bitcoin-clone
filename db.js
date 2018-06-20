@@ -1,6 +1,8 @@
 // This file will be the interface between the app and whatever database
 // it's using
 
+const _ = require('lodash')
+
 const blockUtil = require('./block-util')
 
 class Db {
@@ -8,12 +10,10 @@ class Db {
     this.blocks = []
     this.utxos = []
     this.supply = 0
-    this.mempool = []
-    this.minerProcess = null
-
-    // private place to store a handy utxo based data transformation
-    this._utxoHashes = {}
+    this.nodeList = []
   }
+
+  /** Block related stuff **/
 
   // add a block to the db
   addBlock (block) {
@@ -45,6 +45,27 @@ class Db {
   // get all utxos for a specific PK
   getUtxosForPK (pk) {
     return this.utxos.filter(utxo => utxo.output.address === pk)
+  }
+
+  /** Other stuff **/
+
+  // add another bitcoin client in the form '<ip>:<port>'
+  addNode (node) {
+    this.nodeList.push(node)
+  }
+
+  // validate whether a node is legit or not
+  validateNode (node) {
+    // TODO make sure format is correct
+    const alreadyExists = _.includes(this.nodeList, node)
+    if (alreadyExists) return false
+
+    return true
+  }
+
+  // return list of other bitcoin nodes
+  getNodeList () {
+    return this.nodeList
   }
 }
 

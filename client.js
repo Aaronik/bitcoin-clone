@@ -207,6 +207,9 @@ readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'accou
       const accountList = await getAccountList()
       console.log(JSON.stringify(accountList))
       break
+    case str === 'nodelist':
+      await fetchAndPrint(str)
+      break
     case /account create/.test(str):
       const accountName = getAccountNameFromCreateAccountCommand(str)
       const newAccountObj = await fetch('createaccount/' + accountName)
