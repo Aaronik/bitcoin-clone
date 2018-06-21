@@ -5,13 +5,13 @@ const hex2bin = require('hex-to-binary')
 // return a 'nonce' for the given object that results
 // in its hash starting with the specified number of 0's.
 const generateProofOfWork = (obj, difficultyLevel) => {
-  let nonce = ''
+  let nonce = 0
   let hash = ''
 
   while (!_containsSufficientZeroPadding(hash, difficultyLevel)) {
-    nonce = cryptoUtils.randomBits()
     obj.nonce = nonce
     hash = cryptoUtils.hash(obj)
+    nonce += 1
   }
 
   return nonce
