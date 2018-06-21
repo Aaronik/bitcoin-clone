@@ -33,13 +33,13 @@ class Miner {
   }
 
   // start up the mining
-  startMining ({ blockReward, difficultyLevel, pk, sk, db }) {
+  startMining ({ blockReward, difficultyLevel, pk, sk, db }, callback) {
     this.blockReward = blockReward
     this.difficultyLevel = difficultyLevel
     this.pk = pk
     this.sk = sk
     this.db = db
-    this._startMinerProcess()
+    this._startMinerProcess(callback)
   }
 
   addTx (tx) {
@@ -111,14 +111,14 @@ class Miner {
     return true
   }
 
-  _startMinerProcess () {
+  _startMinerProcess (callback) {
     const args = {
       txs: [_createRewardTx(this.pk, this.blockReward)].concat(this.mempool),
       pk: this.pk,
       sk: this.sk,
       blockReward: this.blockReward,
       difficultyLevel: this.difficultyLevel,
-      prevBlock: _.last(this.db.blocks)
+      prevBlockMetaData: this.db.getLatestBlockMetaData()
     }
 
     // fire up miner in separate process
@@ -126,8 +126,9 @@ class Miner {
 
     this.minerProcess.on('message', block => {
       this.db.addBlock(block)
-      this._utxoHashes = blockUtil.buildUtxoHashesFromBlocks(this.db.blocks)
-      this._startMinerProcess()
+      this._utxoHashes = blockUtil.buildUtxoHashesFromBlocks(this.db.getBlocks())
+      this._startMinerProcess(callback)
+      callback(block)
     })
   }
 

@@ -26,4 +26,10 @@ const broadcastTx = (tx, nodeList) => {
   })
 }
 
-module.exports = { fetchNodeList, informNodeOfExistence, broadcastTx }
+const broadcastBlock = (block, nodeList) => {
+  nodeList.forEach(node => {
+    _post(node, 'addblock', { block }).catch(() => {})
+  })
+}
+
+module.exports = { fetchNodeList, informNodeOfExistence, broadcastTx, broadcastBlock }

@@ -8,7 +8,7 @@ const blockUtil = require('./block-util')
 
 class Db {
   constructor () {
-    this.blocks = []
+    this.blocks = {}
     this.utxos = []
     this.supply = 0
     this.nodeList = []
@@ -18,29 +18,37 @@ class Db {
 
   // add a block to the db
   addBlock (block) {
-    this.blocks.push(block)
-    this.utxos = blockUtil.getUtxosFromBlocks(this.blocks)
+    const headerHash = cryptoUtils.hash(block.header)
+    this.blocks[headerHash] = block
+    this.utxos = blockUtil.getUtxosFromBlocks(this.getBlocks())
     this.supply = blockUtil.calculateSupplyFromUTXOs(this.utxos)
+    // console.log('just finished adding a block:', block)
   }
 
-  // get all blocks from db
+  // get all blocks from db in a list
   getBlocks () {
-    return this.blocks
+    return Object.values(this.blocks)
   }
 
   getBlockRange (startIndex, endIndex) {
     if (startIndex < 0) return null
-    if (endIndex > this.blocks.length - 1) return null
-    return this.blocks.slice(startIndex, endIndex)
+    if (endIndex > this.getBlocks().length - 1) return null
+    return this.getBlocks().slice(startIndex, endIndex)
   }
 
   getLatestBlockMetaData () {
-    if (!this.blocks.length) return { index: null, hash: null }
+    if (!this.getBlocks().length) return { index: null, hash: null }
 
     return {
-      index: this.blocks.length - 1,
-      hash: cryptoUtils.hash(_.last(this.blocks).header)
+      index: this.getBlocks().length - 1,
+      hash: cryptoUtils.hash(_.last(this.getBlocks()).header)
     }
+  }
+
+  blockExists (headerHash) {
+    // the pre-genesis block is always real :)
+    if (headerHash === '0'.repeat(64)) return true
+    return !!this.blocks[headerHash]
   }
 
   // return total monetary supply created in blocks in db
@@ -65,10 +73,21 @@ class Db {
 
   validateBlock (block) {
     const exists = !!block
+    if (!exists) console.log('invalid, doesnt exist')
     if (!exists) return false
 
     const correctSig = cryptoUtils.verify(block.header, block.sig, block.signer)
+    if (!correctSig) console.log('invalid, bad sig')
     if (!correctSig) return false
+
+    const referencesExistingBlock = this.blockExists(block.header.hashPrevHeader)
+    if (!referencesExistingBlock) console.log('invalid, prev block doesnt exist')
+    if (!referencesExistingBlock) return false
+
+    const headerHash = cryptoUtils.hash(block.header)
+    const alreadyHaveBlock = this.blockExists(headerHash)
+    if (alreadyHaveBlock) console.log('invalid, already have block')
+    if (alreadyHaveBlock) return false
 
     return true
   }

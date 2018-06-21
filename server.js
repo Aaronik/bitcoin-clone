@@ -12,8 +12,9 @@ const nodeUtil = require('./node-util')
 
 const config = fileUtil.readConfig()
 
-// This is for ease of testing
+// These are for ease of testing
 const PORT = process.argv[2] || config.port
+const MINING = process.argv[3] ? JSON.parse(process.argv[3]) : config.mining
 
 // the main funk
 const main = () => {
@@ -27,13 +28,15 @@ const main = () => {
   const wallet = fileUtil.readWallet()
 
   // conditionally start the mining
-  if (config.mining) {
+  if (MINING) {
     miner.startMining({
       blockReward: config.blockReward,
       difficultyLevel: config.difficultyLevel,
       pk: wallet[0].pk,
       sk: wallet[0].sk,
       db: db
+    }, block => {
+      nodeUtil.broadcastBlock(block, db.getNodeList())
     })
   }
 
@@ -68,6 +71,7 @@ const main = () => {
 
   app.post('/addtx', (req, res) => {
     const tx = req.body && req.body.transact
+    console.log('addtx heard by', PORT, 'valid:', miner.validateTx(tx), 'with tx:', tx)
     if (!miner.validateTx(tx)) return res.json({ successful: false })
     miner.addTx(tx)
     nodeUtil.broadcastTx(tx, db.getNodeList())
@@ -83,6 +87,7 @@ const main = () => {
 
   app.post('/addblock', (req, res) => {
     const block = req.body && req.body.block
+    console.log(PORT, 'received new block, isValid:', db.validateBlock(block), 'hashPrevHeader:', block.header.hashPrevHeader)
     if (!db.validateBlock(block)) return res.json({ successful: false })
     db.addBlock(block)
     return res.json({ successful: true })
