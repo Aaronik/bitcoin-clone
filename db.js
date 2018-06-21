@@ -101,12 +101,6 @@ class Db {
   getNodeList () {
     return this.nodeList
   }
-
-  // return the node list without a certain node.
-  // Necessary when self is in nodelist.
-  getNodeListWithout (node) {
-    return _.without(this.nodeList, node)
-  }
 }
 
 module.exports = new Db()

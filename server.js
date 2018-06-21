@@ -12,9 +12,6 @@ const nodeUtil = require('./node-util')
 
 const config = fileUtil.readConfig()
 
-// we need this to prevent recursion sending our own node info
-const selfIp = `${config.ip}:${config.port}`
-
 // the main funk
 const main = () => {
   // first we deal with the wallet file
@@ -68,10 +65,9 @@ const main = () => {
 
   app.post('/addtx', (req, res) => {
     const tx = req.body && req.body.transact
-    console.log('post received to /addtx, tx:', tx)
     if (!miner.validateTx(tx)) return res.json({ successful: false })
     miner.addTx(tx)
-    nodeUtil.broadcastTx(tx, db.getNodeListWithout(selfIp))
+    nodeUtil.broadcastTx(tx, db.getNodeList())
     return res.json({ successful: true })
   })
 
