@@ -31,9 +31,28 @@ class Db {
     this.supply = blockUtil.calculateSupplyFromUTXOs(this.utxos)
   }
 
-  // get all blocks from db in an ordered list
+  // get all blocks from chain in an ordered list
   getBlocks () {
-    return Object.values(this.blocks).sort((b1, b2) => b1.height < b2.height ? -1 : 1)
+    // We want to return 1) just the blocks on the main chain, and 2) in order
+    // First we order _all_ of the blocks. This is an array ordered on height
+    // [{...height: 0},{...height: 1}, ...]
+    const allBlocksOrdered = Object.values(this.blocks)
+      .sort((b1, b2) => b1.height < b2.height ? -1 : 1)
+
+    if (allBlocksOrdered.length === 0) return []
+
+    // Now we populate a list of the blocks we find walking _backwards_
+    // down the chain. Anything not in that list is not in our main chain.
+    let prunedBlocksOrdered = [_.last(allBlocksOrdered)]
+
+    while (true) {
+      const nextBlockHash = prunedBlocksOrdered[0].header.hashPrevHeader
+      const nextBlock = this.blocks[nextBlockHash]
+      if (!nextBlock) break // we've reached the end of the chain
+      prunedBlocksOrdered.unshift(nextBlock)
+    }
+
+    return prunedBlocksOrdered
   }
 
   getBlockRange (startIndex, endIndex) {
@@ -81,20 +100,20 @@ class Db {
 
   validateBlock (block) {
     const exists = !!block
-    if (!exists) console.log('invalid, doesnt exist')
+    // if (!exists) console.log('invalid, doesnt exist')
     if (!exists) return false
 
     const correctSig = cryptoUtils.verify(block.header, block.sig, block.signer)
-    if (!correctSig) console.log('invalid, bad sig')
+    // if (!correctSig) console.log('invalid, bad sig')
     if (!correctSig) return false
 
     const referencesExistingBlock = this.blockExists(block.header.hashPrevHeader)
-    if (!referencesExistingBlock) console.log('invalid, prev block doesnt exist')
+    // if (!referencesExistingBlock) console.log('invalid, prev block doesnt exist')
     if (!referencesExistingBlock) return false
 
     const headerHash = cryptoUtils.hash(block.header)
     const alreadyHaveBlock = this.blockExists(headerHash)
-    if (alreadyHaveBlock) console.log('invalid, already have block')
+    // if (alreadyHaveBlock) console.log('invalid, already have block')
     if (alreadyHaveBlock) return false
 
     return true

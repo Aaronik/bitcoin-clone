@@ -64,7 +64,7 @@ class Miner {
       typeof tx.txNonce !== 'string'
     )
 
-    if (isWrongShape) console.log('invalid tx, wrong shape')
+    // if (isWrongShape) console.log('invalid tx, wrong shape')
     if (isWrongShape) return false
 
     /** inputs map to valid utxos once **/
@@ -80,7 +80,7 @@ class Miner {
       return mapsToUtxo
     })
 
-    if (!allInputsMapToValidUtxoOnce) console.log('invalid tx, doesnt map to valid utxo once')
+    // if (!allInputsMapToValidUtxoOnce) console.log('invalid tx, doesnt map to valid utxo once')
     if (!allInputsMapToValidUtxoOnce) return false
 
     /** Input !< Output **/

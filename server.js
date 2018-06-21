@@ -71,7 +71,6 @@ const main = () => {
 
   app.post('/addtx', (req, res) => {
     const tx = req.body && req.body.transact
-    console.log('addtx heard by', PORT, 'valid:', miner.validateTx(tx), 'with tx:', tx)
     if (!miner.validateTx(tx)) return res.json({ successful: false })
     miner.addTx(tx)
     nodeUtil.broadcastTx(tx, db.getNodeList())
