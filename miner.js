@@ -27,9 +27,6 @@ class Miner {
   constructor () {
     this.mempool = []
     this.minerProcess = null
-
-    // private place to store a handy utxo based data transformation
-    this._utxoHashes = {}
   }
 
   // start up the mining
@@ -60,17 +57,20 @@ class Miner {
     // TODO need to make sure values in outputs and inputs are not negative
 
     /** Shape **/
-    if (
+    const isWrongShape = (
       typeof tx !== 'object' ||
       typeof tx.inputs !== 'object' ||
       typeof tx.outputs !== 'object' ||
       typeof tx.txNonce !== 'string'
-    ) return false
+    )
+
+    if (isWrongShape) console.log('invalid tx, wrong shape')
+    if (isWrongShape) return false
 
     /** inputs map to valid utxos once **/
 
-    // duplicate our stored _utxoHashes so we can mangle it
-    const utxoHashes = Object.assign({}, this._utxoHashes)
+    // duplicate our stored utxoHashes so we can mangle it
+    const utxoHashes = Object.assign({}, this.db.utxoHashes)
 
     // inputs all map to a utxo, no double matching
     const allInputsMapToValidUtxoOnce = tx.inputs.every(input => {
@@ -80,12 +80,13 @@ class Miner {
       return mapsToUtxo
     })
 
+    if (!allInputsMapToValidUtxoOnce) console.log('invalid tx, doesnt map to valid utxo once')
     if (!allInputsMapToValidUtxoOnce) return false
 
     /** Input !< Output **/
     const inputTotalValue = tx.inputs.reduce((total, input) => {
       const key = input.prevTx + input.index.toString() // TODO abstract
-      return total + this._utxoHashes[key].output.value
+      return total + this.db.utxoHashes[key].output.value
     }, 0)
 
     const outputTotalValue = tx.outputs.reduce((total, output) => {
@@ -98,7 +99,7 @@ class Miner {
 
     /** Enough sender supply **/
     const key = tx.inputs[0].prevTx + tx.inputs[0].index
-    const senderPk = this._utxoHashes[key].output.address
+    const senderPk = this.db.utxoHashes[key].output.address
     const senderSupply = blockUtil.calculateSupplyFromUTXOs(this.db.getUtxosForPK(senderPk))
     const txTotalSpent = _getTotalSpentFromTx(tx)
     const hasEnoughCoin = senderSupply - txTotalSpent >= 0
@@ -125,6 +126,7 @@ class Miner {
       sk: this.sk,
       blockReward: this.blockReward,
       difficultyLevel: this.difficultyLevel,
+      miner: process.argv[2],
       prevBlockMetaData: this.db.getLatestBlockMetaData()
     }
 
@@ -133,7 +135,6 @@ class Miner {
 
     this.minerProcess.on('message', block => {
       this.db.addBlock(block)
-      this._utxoHashes = blockUtil.buildUtxoHashesFromBlocks(this.db.getBlocks())
       this._startMinerProcess()
       this.onMineBlock(block)
     })

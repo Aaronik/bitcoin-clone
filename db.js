@@ -12,6 +12,9 @@ class Db {
     this.utxos = []
     this.supply = 0
     this.nodeList = []
+
+    // private place to store a handy, internally used data transformation
+    this.utxoHashes = {}
   }
 
   /** Block related stuff **/
@@ -20,7 +23,11 @@ class Db {
   addBlock (block) {
     const headerHash = cryptoUtils.hash(block.header)
     this.blocks[headerHash] = block
-    this.utxos = blockUtil.getUtxosFromBlocks(this.getBlocks())
+
+    const orderedBlocks = this.getBlocks()
+
+    this.utxoHashes = blockUtil.buildUtxoHashesFromBlocks(orderedBlocks)
+    this.utxos = blockUtil.getUtxosFromBlocks(orderedBlocks)
     this.supply = blockUtil.calculateSupplyFromUTXOs(this.utxos)
   }
 

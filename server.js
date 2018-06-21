@@ -87,7 +87,6 @@ const main = () => {
 
   app.post('/addblock', (req, res) => {
     const block = req.body && req.body.block
-    console.log(PORT, 'received new block, isValid:', db.validateBlock(block), 'hashPrevHeader:', block.header.hashPrevHeader)
     if (!db.validateBlock(block)) return res.json({ successful: false })
     db.addBlock(block)
     miner.interrupt()
