@@ -23,17 +23,13 @@ const main = () => {
     fileUtil.createWallet()
   }
 
-  // TODO optimize by returning from fileUtil.createWallet
-  // (or don't optimize b/c this will not be a bottleneck)
-  const wallet = fileUtil.readWallet()
-
   // conditionally start the mining
   if (MINING) {
     miner.startMining({
       blockReward: config.blockReward,
       difficultyLevel: config.difficultyLevel,
-      pk: wallet[0].pk,
-      sk: wallet[0].sk,
+      pk: fileUtil.readWallet()[0].pk,
+      sk: fileUtil.readWallet()[0].sk,
       db: db
     }, block => {
       nodeUtil.broadcastBlock(block, db.getNodeList())
@@ -94,11 +90,16 @@ const main = () => {
 
   // attach to the rest of the nodes in the world
   if (db.validateNode(config.seedNode)) db.addNode(config.seedNode)
-  nodeUtil.fetchNodeList(config.seedNode).then(nodesJson => {
+  nodeUtil.fetchNodeList(config.seedNode).then(async function (nodesJson) {
     const nodes = JSON.parse(nodesJson).nodes
     nodes.forEach(node => {
       if (db.validateNode(node)) db.addNode(node)
       nodeUtil.informNodeOfExistence(node, config.ip, PORT)
+    })
+
+    const foreignBlocks = await nodeUtil.getSynchronizedBlocks(db.getNodeList(), db.getBlocks())
+    foreignBlocks.forEach(block => {
+      if (db.validateBlock(block)) db.addBlock(block)
     })
   })
 
