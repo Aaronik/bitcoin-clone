@@ -90,6 +90,7 @@ const main = () => {
     console.log(PORT, 'received new block, isValid:', db.validateBlock(block), 'hashPrevHeader:', block.header.hashPrevHeader)
     if (!db.validateBlock(block)) return res.json({ successful: false })
     db.addBlock(block)
+    miner.interrupt()
     return res.json({ successful: true })
   })
 

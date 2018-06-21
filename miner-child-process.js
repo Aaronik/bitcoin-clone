@@ -27,7 +27,7 @@ const block = {
   txs: txs,
   signer: pk,
   sig: cryptoUtils.sign(blockHeader, sk),
-  height: prevBlockMetaData.index ? prevBlockMetaData.index + 1 : 0
+  height: prevBlockMetaData.index === null ? 0 : prevBlockMetaData.index + 1
 }
 
 process.send(block)

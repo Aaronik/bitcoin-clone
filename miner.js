@@ -33,13 +33,20 @@ class Miner {
   }
 
   // start up the mining
-  startMining ({ blockReward, difficultyLevel, pk, sk, db }, callback) {
+  startMining ({ blockReward, difficultyLevel, pk, sk, db }, onMineBlock) {
     this.blockReward = blockReward
     this.difficultyLevel = difficultyLevel
     this.pk = pk
     this.sk = sk
     this.db = db
-    this._startMinerProcess(callback)
+    this.onMineBlock = onMineBlock
+    this.minerProcess = null
+    this._startMinerProcess()
+  }
+
+  // call this to interrupt the mining process and start anew
+  interrupt () {
+    this._restartMinerProcess()
   }
 
   addTx (tx) {
@@ -111,7 +118,7 @@ class Miner {
     return true
   }
 
-  _startMinerProcess (callback) {
+  _startMinerProcess () {
     const args = {
       txs: [_createRewardTx(this.pk, this.blockReward)].concat(this.mempool),
       pk: this.pk,
@@ -127,8 +134,8 @@ class Miner {
     this.minerProcess.on('message', block => {
       this.db.addBlock(block)
       this._utxoHashes = blockUtil.buildUtxoHashesFromBlocks(this.db.getBlocks())
-      this._startMinerProcess(callback)
-      callback(block)
+      this._startMinerProcess()
+      this.onMineBlock(block)
     })
   }
 
@@ -137,8 +144,10 @@ class Miner {
   }
 
   _restartMinerProcess () {
-    if (this.minerProcess) this._killMinerProcess()
-    this._startMinerProcess()
+    if (this.minerProcess) {
+      this._killMinerProcess()
+      this._startMinerProcess()
+    }
   }
 }
 

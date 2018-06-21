@@ -22,12 +22,11 @@ class Db {
     this.blocks[headerHash] = block
     this.utxos = blockUtil.getUtxosFromBlocks(this.getBlocks())
     this.supply = blockUtil.calculateSupplyFromUTXOs(this.utxos)
-    // console.log('just finished adding a block:', block)
   }
 
-  // get all blocks from db in a list
+  // get all blocks from db in an ordered list
   getBlocks () {
-    return Object.values(this.blocks)
+    return Object.values(this.blocks).sort((b1, b2) => b1.height < b2.height ? -1 : 1)
   }
 
   getBlockRange (startIndex, endIndex) {
@@ -39,9 +38,11 @@ class Db {
   getLatestBlockMetaData () {
     if (!this.getBlocks().length) return { index: null, hash: null }
 
+    const lastBlock = _.last(this.getBlocks())
+
     return {
-      index: this.getBlocks().length - 1,
-      hash: cryptoUtils.hash(_.last(this.getBlocks()).header)
+      index: lastBlock.height,
+      hash: cryptoUtils.hash(lastBlock.header)
     }
   }
 
