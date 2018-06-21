@@ -56,9 +56,10 @@ class Db {
   }
 
   getBlockRange (startIndex, endIndex) {
+    const blocks = this.getBlocks()
     if (startIndex < 0) return null
-    if (endIndex > this.getBlocks().length - 1) return null
-    return this.getBlocks().slice(startIndex, endIndex)
+    if (endIndex > blocks.length - 1) return null
+    return blocks.slice(startIndex, endIndex + 1)
   }
 
   getLatestBlockMetaData () {

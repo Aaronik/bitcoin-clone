@@ -52,7 +52,7 @@ const main = () => {
   app.get('/blocks/:startIndex/:endIndex', (req, res) => {
     const { startIndex, endIndex } = req.params
     return res.json({
-      blocks: db.getBlockRange(startIndex, endIndex)
+      blocks: db.getBlockRange(Number(startIndex), Number(endIndex))
     })
   })
 
