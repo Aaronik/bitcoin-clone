@@ -186,7 +186,7 @@ async function generateTx (amount, senderName, receiverName) {
 console.log(`Connecting to server at ${SERVER_URL}...`)
 
 // the main REPL
-readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'account create', 'account list', 'transfer 55 miner goku'] }, async function (err, args, str, next) {
+readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'account create', 'account list', 'transfer 55 miner goku', 'nodelist'] }, async function (err, args, str, next) {
   if (err) {
     console.error(err)
     process.exit(1)
