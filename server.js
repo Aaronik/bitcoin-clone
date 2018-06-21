@@ -12,6 +12,9 @@ const nodeUtil = require('./node-util')
 
 const config = fileUtil.readConfig()
 
+// This is for ease of testing
+const PORT = process.argv[2] || config.port
+
 // the main funk
 const main = () => {
   // first we deal with the wallet file
@@ -97,8 +100,8 @@ const main = () => {
 
   // fire up the serving
   app.listen(
-    config.port,
-    () => console.log(`Server started on localhost:${config.port}...`)
+    PORT,
+    () => console.log(`Server started on localhost:${PORT}...`)
   )
 }
 
