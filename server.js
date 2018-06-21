@@ -94,7 +94,7 @@ const main = () => {
     const nodes = JSON.parse(nodesJson).nodes
     nodes.forEach(node => {
       if (db.validateNode(node)) db.addNode(node)
-      nodeUtil.informNodeOfExistence(node, config.ip, config.port)
+      nodeUtil.informNodeOfExistence(node, config.ip, PORT)
     })
   })
 
