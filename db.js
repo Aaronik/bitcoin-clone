@@ -22,6 +22,9 @@ class Db {
   // add a block to the db
   addBlock (block) {
     const headerHash = cryptoUtils.hash(block.header)
+
+    block.height = blockUtil.calculateBlockHeight(block, this.blocks)
+
     this.blocks[headerHash] = block
 
     const orderedBlocks = this.getBlocks()

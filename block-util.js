@@ -53,4 +53,12 @@ const calculateSupplyFromUTXOs = (utxos) => {
   }, 0)
 }
 
-module.exports = { buildUtxoHashesFromBlocks, getUtxosFromBlocks, calculateSupplyFromUTXOs }
+// recursively calculate the height of a block
+const calculateBlockHeight = (block, blocks, height = 0) => {
+  if (block.header.hashPrevHeader === '0'.repeat(64)) return height
+
+  const nextBlock = blocks[block.header.hashPrevHeader]
+  return calculateBlockHeight(nextBlock, blocks, height + 1)
+}
+
+module.exports = { buildUtxoHashesFromBlocks, getUtxosFromBlocks, calculateSupplyFromUTXOs, calculateBlockHeight }
