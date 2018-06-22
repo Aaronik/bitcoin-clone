@@ -11,6 +11,10 @@ const generateProofOfWork = (obj, difficultyLevel) => {
   while (!_containsSufficientZeroPadding(hash, difficultyLevel)) {
     obj.nonce = nonce
     hash = cryptoUtils.hash(obj)
+    // TODO Note: this scheme means that pausing execution on mining of a block
+    // and then starting it back up will result in re-testing already tested
+    // nonces. ATTOW, a new incoming block, even deep down the chain,
+    // will cause an interrupt. This should be made random.
     nonce += 1
   }
 
