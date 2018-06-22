@@ -44,17 +44,17 @@ async function getSynchronizedBlocks (nodeList, blocks) {
   let lastSynchronizedBlockIndex = blocks.length
 
   for (let i = blocks.length; i > 0; i--) {
-    const block = await _getSynchronizedBlockAtIndex(nodeList, i)
+    const block = await _getSynchronizedBlockAtIndex(randomNodes, i)
     if (cryptoUtils.hash(block.header) === cryptoUtils.hash(blocks[i].header)) {
       lastSynchronizedBlockIndex = i
       break
     }
   }
 
-  const latestBlock = await _getSynchronizedLatestBlock(nodeList)
+  const latestBlock = await _getSynchronizedLatestBlock(randomNodes)
   const latestBlockIndex = latestBlock.index
 
-  const blocksJson = await _getSynchronizedBlockList(nodeList, lastSynchronizedBlockIndex, latestBlockIndex)
+  const blocksJson = await _getSynchronizedBlockList(randomNodes, lastSynchronizedBlockIndex, latestBlockIndex)
   return _tryToParse(blocksJson).blocks
 }
 

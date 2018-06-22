@@ -42,7 +42,7 @@ const main = () => {
   app.get('/utxos', (req, res) => res.json({ utxos: db.getUtxos() }))
   app.get('/utxos/:pk', (req, res) => res.json({ utxos: db.getUtxosForPK(req.params.pk) }))
   app.get('/blocks', (req, res) => res.json({ blocks: db.getBlocks() }))
-  app.get('/latestblock', (req, res) => res.json( db.getLatestBlockMetaData() ))
+  app.get('/latestblock', (req, res) => res.json(db.getLatestBlockMetaData()))
   app.get('/accounts', (req, res) => res.json({ accounts: fileUtil.readWallet() }))
 
   app.get('/blocks/:startIndex/:endIndex', (req, res) => {
