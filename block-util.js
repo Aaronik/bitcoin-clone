@@ -1,8 +1,5 @@
 // A file containing helper functions around blocks, utxos, supply, etc.
 
-const _ = require('lodash')
-const cryptoUtils = require('crypto-utils')
-
 // Return a custom utxo format. Very helpful for many internal calculations.
 // Output is not meant to see the outside world.
 const buildUtxoHashesFromBlocks = (blocks) => {
@@ -64,17 +61,9 @@ const calculateBlockHeight = (block, blocks, height = 0) => {
   return calculateBlockHeight(nextBlock, blocks, height + 1)
 }
 
-// returns a list of blocks which are _not_ on the  main chain
-const getInvalidatedBlocks = (validBlocks, allBlocks) => {
-  return _.differenceWith(validBlocks, allBlocks,
-    (b1, b2) => cryptoUtils.hash(b1.header) === cryptoUtils.hash(b2.header)
-  )
-}
-
 module.exports = {
   buildUtxoHashesFromBlocks,
   getUtxosFromBlocks,
   calculateSupplyFromUTXOs,
-  calculateBlockHeight,
-  getInvalidatedBlocks
+  calculateBlockHeight
 }

@@ -32,6 +32,8 @@ const main = () => {
       sk: fileUtil.readWallet()[0].sk,
       db: db
     }, block => {
+      db.addBlock(block)
+      db.getInvalidatedTxs().forEach(miner.addTxIfValid)
       nodeUtil.broadcastBlock(block, db.getNodeList())
     })
   }
@@ -84,6 +86,7 @@ const main = () => {
     const block = req.body && req.body.block
     if (!db.validateBlock(block)) return res.json({ successful: false })
     db.addBlock(block)
+    db.getInvalidatedTxs().forEach(miner.addTxIfValid)
     miner.interrupt()
     return res.json({ successful: true })
   })

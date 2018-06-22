@@ -34,15 +34,6 @@ class Db {
     this.utxoHashes = blockUtil.buildUtxoHashesFromBlocks(orderedBlocks)
     this.utxos = blockUtil.getUtxosFromBlocks(orderedBlocks)
     this.supply = blockUtil.calculateSupplyFromUTXOs(this.utxos)
-
-    // now we need to make sure any txs invalidated by a block fork
-    // are reapplied to our mempool.
-    const unusedBlocks =
-      blockUtil.getInvalidatedBlocks(orderedBlocks, Object.values(this.blocks))
-
-    unusedBlocks.forEach(block => block.txs.forEach(tx => {
-      if (miner.validateTx(tx)) miner.addTx(tx)
-    }))
   }
 
   // get all blocks from chain in an ordered list
@@ -132,6 +123,21 @@ class Db {
     if (alreadyHaveBlock) return false
 
     return true
+  }
+
+  // returns a list of blocks which are _not_ on the  main chain
+  getInvalidatedBlocks () {
+    const validBlocks = this.getBlocks()
+    const allBlocks = Object.values(this.blocks)
+
+    return _.differenceWith(validBlocks, allBlocks,
+      (b1, b2) => cryptoUtils.hash(b1.header) === cryptoUtils.hash(b2.header)
+    )
+  }
+
+  getInvalidatedTxs () {
+    const invalidatedBlocks = this.getInvalidatedBlocks()
+    return _.flatten(invalidatedBlocks.map(block => block.txs))
   }
 
   /** Other stuff **/

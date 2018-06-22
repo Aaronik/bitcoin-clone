@@ -51,6 +51,11 @@ class Miner {
     this._restartMinerProcess()
   }
 
+  // just a shortcut to add a tx if it's valid or silently drop it
+  addTxIfValid (tx) {
+    if (this.validateTx(tx)) this.addTx(tx)
+  }
+
   validateTx (tx) {
     // TODO ensure inputs is not empty, ensure shape of inputs, outputs
     // TODO need to make sure values in outputs and inputs are not negative
@@ -133,7 +138,6 @@ class Miner {
     this.minerProcess = cp.fork('./miner-child-process.js', [JSON.stringify(args)])
 
     this.minerProcess.on('message', block => {
-      this.db.addBlock(block)
       this._startMinerProcess()
       this.onMineBlock(block)
     })
