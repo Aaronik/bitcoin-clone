@@ -47,7 +47,6 @@ class Miner {
   }
 
   addTx (tx) {
-    if (!this.pk) throw new Error('must start miner before adding transactions!')
     this.mempool.push(tx)
     this._restartMinerProcess()
   }

@@ -27,11 +27,22 @@ class Db {
 
     this.blocks[headerHash] = block
 
+    // this is an ordered list of our understanding of the correct blockchain
     const orderedBlocks = this.getBlocks()
 
+    // calculate ancillary information based on blocks
     this.utxoHashes = blockUtil.buildUtxoHashesFromBlocks(orderedBlocks)
     this.utxos = blockUtil.getUtxosFromBlocks(orderedBlocks)
     this.supply = blockUtil.calculateSupplyFromUTXOs(this.utxos)
+
+    // now we need to make sure any txs invalidated by a block fork
+    // are reapplied to our mempool.
+    const unusedBlocks =
+      blockUtil.getInvalidatedBlocks(orderedBlocks, Object.values(this.blocks))
+
+    unusedBlocks.forEach(block => block.txs.forEach(tx => {
+      if (miner.validateTx(tx)) miner.addTx(tx)
+    }))
   }
 
   // get all blocks from chain in an ordered list
