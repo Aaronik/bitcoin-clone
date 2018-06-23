@@ -8,6 +8,8 @@ const cryptoUtils = require('crypto-utils')
 const fileUtil = require('./file-util')({ CONFIG_PATH })
 const config = fileUtil.readConfig()
 
+const SERVER_URL = process.argv[2] || config.serverUrl
+
 const getAccountByName = (accounts, name) => {
   const account = accounts.find(account => {
     return account.name === name
@@ -21,7 +23,7 @@ const getAccountByName = (accounts, name) => {
 async function fetch (path) {
   const returnVal = await request({
     method: 'GET',
-    uri: config.serverUrl + '/' + path
+    uri: SERVER_URL + '/' + path
   })
 
   return returnVal
@@ -36,7 +38,7 @@ async function fetchAndPrint (path) {
 async function post (path, data) {
   const returnVal = await request({
     method: 'POST',
-    uri: config.serverUrl + '/' + path,
+    uri: SERVER_URL + '/' + path,
     body: data,
     json: true
   })
@@ -181,10 +183,10 @@ async function generateTx (amount, senderName, receiverName) {
   return { transact: tx }
 }
 
-console.log(`Connecting to server at ${config.serverUrl}...`)
+console.log(`Connecting to server at ${SERVER_URL}...`)
 
 // the main REPL
-readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'account create', 'account list', 'transfer 55 miner goku'] }, async function (err, args, str, next) {
+readcommand.loop({ history: ['supply', 'utxos', 'blocks', 'help', 'exit', 'account create', 'account list', 'transfer 55 miner goku', 'nodelist'] }, async function (err, args, str, next) {
   if (err) {
     console.error(err)
     process.exit(1)

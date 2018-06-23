@@ -7,11 +7,11 @@ const hashUtil = require('./hash-util')
 
 // get the args passed from the caller (like from the CLI unfortunately)
 const args = JSON.parse(process.argv[2])
-const { txs, pk, sk, difficultyLevel, prevBlock } = args
+const { txs, pk, sk, difficultyLevel, prevBlockMetaData, miner } = args
 
 // the genesis block's header starts with all 0's
-const hashPrevHeader = prevBlock
-  ? cryptoUtils.hash(prevBlock.header)
+const hashPrevHeader = prevBlockMetaData.hash
+  ? prevBlockMetaData.hash
   : '0'.repeat(64)
 
 let blockHeader = {
@@ -25,9 +25,9 @@ blockHeader.nonce = hashUtil.generateProofOfWork(blockHeader, Number(difficultyL
 const block = {
   header: blockHeader,
   txs: txs,
+  miner: miner,
   signer: pk,
-  sig: cryptoUtils.sign({ header: blockHeader }, sk),
-  height: 0
+  sig: cryptoUtils.sign(blockHeader, sk)
 }
 
 process.send(block)

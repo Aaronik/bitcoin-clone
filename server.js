@@ -10,7 +10,11 @@ const miner = require('./miner')
 const db = require('./db')
 const nodeUtil = require('./node-util')
 
-const config = fileUtil.readConfig() // contents of our config
+const config = fileUtil.readConfig()
+
+// These are for ease of testing
+const PORT = process.argv[2] || config.port
+const MINING = process.argv[3] ? JSON.parse(process.argv[3]) : config.mining
 
 // the main funk
 const main = () => {
@@ -19,18 +23,19 @@ const main = () => {
     fileUtil.createWallet()
   }
 
-  // TODO optimize by returning from fileUtil.createWallet
-  // (or don't optimize b/c this will not be a bottleneck)
-  const wallet = fileUtil.readWallet()
-
   // conditionally start the mining
-  if (config.mining) {
+  if (MINING) {
     miner.startMining({
       blockReward: config.blockReward,
       difficultyLevel: config.difficultyLevel,
-      pk: wallet[0].pk,
-      sk: wallet[0].sk,
+      pk: fileUtil.readWallet()[0].pk,
+      sk: fileUtil.readWallet()[0].sk,
       db: db
+    }, block => {
+      // wire together what happens when the miner has made a block
+      db.addBlock(block)
+      db.getInvalidatedTxs().forEach(miner.addTxIfValid)
+      nodeUtil.broadcastBlock(block, db.getNodeList())
     })
   }
 
@@ -40,7 +45,15 @@ const main = () => {
   app.get('/utxos', (req, res) => res.json({ utxos: db.getUtxos() }))
   app.get('/utxos/:pk', (req, res) => res.json({ utxos: db.getUtxosForPK(req.params.pk) }))
   app.get('/blocks', (req, res) => res.json({ blocks: db.getBlocks() }))
+  app.get('/latestblock', (req, res) => res.json(db.getLatestBlockMetaData()))
   app.get('/accounts', (req, res) => res.json({ accounts: fileUtil.readWallet() }))
+
+  app.get('/blocks/:startIndex/:endIndex', (req, res) => {
+    const { startIndex, endIndex } = req.params
+    return res.json({
+      blocks: db.getBlockRange(Number(startIndex), Number(endIndex))
+    })
+  })
 
   app.get('/createaccount/:name', (req, res) => {
     const accountName = req.params.name
@@ -59,6 +72,7 @@ const main = () => {
     const tx = req.body && req.body.transact
     if (!miner.validateTx(tx)) return res.json({ successful: false })
     miner.addTx(tx)
+    nodeUtil.broadcastTx(tx, db.getNodeList())
     return res.json({ successful: true })
   })
 
@@ -69,20 +83,35 @@ const main = () => {
     return res.json({ successful: true })
   })
 
+  app.post('/addblock', (req, res) => {
+    const block = req.body && req.body.block
+    if (!db.validateBlock(block)) return res.json({ successful: false })
+    db.addBlock(block)
+    db.getInvalidatedTxs().forEach(miner.addTxIfValid)
+    miner.interrupt()
+    return res.json({ successful: true })
+  })
+
   // attach to the rest of the nodes in the world
   if (db.validateNode(config.seedNode)) db.addNode(config.seedNode)
-  nodeUtil.getNodeList(config.seedNode).then(nodesJson => {
+  nodeUtil.fetchNodeList(config.seedNode).then(async function (nodesJson) {
     const nodes = JSON.parse(nodesJson).nodes
     nodes.forEach(node => {
       if (db.validateNode(node)) db.addNode(node)
-      nodeUtil.informNodeOfExistence(node, config.ip, config.port)
+      nodeUtil.informNodeOfExistence(node, config.ip, PORT)
+    })
+
+    // synchronize our blocks with the outside world's
+    const foreignBlocks = await nodeUtil.getSynchronizedBlocks(db.getNodeList(), db.getBlocks())
+    foreignBlocks.forEach(block => {
+      if (db.validateBlock(block)) db.addBlock(block)
     })
   })
 
   // fire up the serving
   app.listen(
-    config.port,
-    () => console.log(`Server started on localhost:${config.port}...`)
+    PORT,
+    () => console.log(`Server started on localhost:${PORT}...`)
   )
 }
 

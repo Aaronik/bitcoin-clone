@@ -27,25 +27,33 @@ class Miner {
   constructor () {
     this.mempool = []
     this.minerProcess = null
-
-    // private place to store a handy utxo based data transformation
-    this._utxoHashes = {}
   }
 
   // start up the mining
-  startMining ({ blockReward, difficultyLevel, pk, sk, db }) {
+  startMining ({ blockReward, difficultyLevel, pk, sk, db }, onMineBlock) {
     this.blockReward = blockReward
     this.difficultyLevel = difficultyLevel
     this.pk = pk
     this.sk = sk
     this.db = db
+    this.onMineBlock = onMineBlock
+    this.minerProcess = null
     this._startMinerProcess()
   }
 
+  // call this to interrupt the mining process and start anew
+  interrupt () {
+    this._restartMinerProcess()
+  }
+
   addTx (tx) {
-    if (!this.pk) throw new Error('must start miner before adding transactions!')
     this.mempool.push(tx)
     this._restartMinerProcess()
+  }
+
+  // just a shortcut to add a tx if it's valid or silently drop it
+  addTxIfValid (tx) {
+    if (this.validateTx(tx)) this.addTx(tx)
   }
 
   validateTx (tx) {
@@ -53,17 +61,19 @@ class Miner {
     // TODO need to make sure values in outputs and inputs are not negative
 
     /** Shape **/
-    if (
+    const isWrongShape = (
       typeof tx !== 'object' ||
       typeof tx.inputs !== 'object' ||
       typeof tx.outputs !== 'object' ||
       typeof tx.txNonce !== 'string'
-    ) return false
+    )
+
+    if (isWrongShape) return false
 
     /** inputs map to valid utxos once **/
 
-    // duplicate our stored _utxoHashes so we can mangle it
-    const utxoHashes = Object.assign({}, this._utxoHashes)
+    // duplicate our stored utxoHashes so we can mangle it
+    const utxoHashes = Object.assign({}, this.db.utxoHashes)
 
     // inputs all map to a utxo, no double matching
     const allInputsMapToValidUtxoOnce = tx.inputs.every(input => {
@@ -78,7 +88,7 @@ class Miner {
     /** Input !< Output **/
     const inputTotalValue = tx.inputs.reduce((total, input) => {
       const key = input.prevTx + input.index.toString() // TODO abstract
-      return total + this._utxoHashes[key].output.value
+      return total + this.db.utxoHashes[key].output.value
     }, 0)
 
     const outputTotalValue = tx.outputs.reduce((total, output) => {
@@ -91,7 +101,7 @@ class Miner {
 
     /** Enough sender supply **/
     const key = tx.inputs[0].prevTx + tx.inputs[0].index
-    const senderPk = this._utxoHashes[key].output.address
+    const senderPk = this.db.utxoHashes[key].output.address
     const senderSupply = blockUtil.calculateSupplyFromUTXOs(this.db.getUtxosForPK(senderPk))
     const txTotalSpent = _getTotalSpentFromTx(tx)
     const hasEnoughCoin = senderSupply - txTotalSpent >= 0
@@ -105,6 +115,9 @@ class Miner {
 
     if (!hasCorrectSignatures) return false
 
+    const alreadyExists = this.mempool.some(t => tx.txNonce === t.txNonce)
+    if (alreadyExists) return false
+
     return true
   }
 
@@ -115,16 +128,16 @@ class Miner {
       sk: this.sk,
       blockReward: this.blockReward,
       difficultyLevel: this.difficultyLevel,
-      prevBlock: _.last(this.db.blocks)
+      miner: process.argv[2],
+      prevBlockMetaData: this.db.getLatestBlockMetaData()
     }
 
     // fire up miner in separate process
     this.minerProcess = cp.fork('./miner-child-process.js', [JSON.stringify(args)])
 
     this.minerProcess.on('message', block => {
-      this.db.addBlock(block)
-      this._utxoHashes = blockUtil.buildUtxoHashesFromBlocks(this.db.blocks)
       this._startMinerProcess()
+      this.onMineBlock(block)
     })
   }
 
@@ -133,8 +146,10 @@ class Miner {
   }
 
   _restartMinerProcess () {
-    if (this.minerProcess) this._killMinerProcess()
-    this._startMinerProcess()
+    if (this.minerProcess) {
+      this._killMinerProcess()
+      this._startMinerProcess()
+    }
   }
 }
 
