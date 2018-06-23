@@ -106,20 +106,16 @@ class Db {
 
   validateBlock (block) {
     const exists = !!block
-    // if (!exists) console.log('invalid, doesnt exist')
     if (!exists) return false
 
     const correctSig = cryptoUtils.verify(block.header, block.sig, block.signer)
-    // if (!correctSig) console.log('invalid, bad sig')
     if (!correctSig) return false
 
     const referencesExistingBlock = this.blockExists(block.header.hashPrevHeader)
-    // if (!referencesExistingBlock) console.log('invalid, prev block doesnt exist')
     if (!referencesExistingBlock) return false
 
     const headerHash = cryptoUtils.hash(block.header)
     const alreadyHaveBlock = this.blockExists(headerHash)
-    // if (alreadyHaveBlock) console.log('invalid, already have block')
     if (alreadyHaveBlock) return false
 
     return true

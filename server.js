@@ -32,6 +32,7 @@ const main = () => {
       sk: fileUtil.readWallet()[0].sk,
       db: db
     }, block => {
+      // wire together what happens when the miner has made a block
       db.addBlock(block)
       db.getInvalidatedTxs().forEach(miner.addTxIfValid)
       nodeUtil.broadcastBlock(block, db.getNodeList())
@@ -100,6 +101,7 @@ const main = () => {
       nodeUtil.informNodeOfExistence(node, config.ip, PORT)
     })
 
+    // synchronize our blocks with the outside world's
     const foreignBlocks = await nodeUtil.getSynchronizedBlocks(db.getNodeList(), db.getBlocks())
     foreignBlocks.forEach(block => {
       if (db.validateBlock(block)) db.addBlock(block)

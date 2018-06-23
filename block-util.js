@@ -1,5 +1,7 @@
 // A file containing helper functions around blocks, utxos, supply, etc.
 
+const cryptoUtils = require('crypto-utils')
+
 // Return a custom utxo format. Very helpful for many internal calculations.
 // Output is not meant to see the outside world.
 const buildUtxoHashesFromBlocks = (blocks) => {
@@ -17,7 +19,7 @@ const buildUtxoHashesFromBlocks = (blocks) => {
       tx.outputs.forEach((output, outputIdx) => {
         const key = tx.txNonce + outputIdx.toString()
         utxoHashes[key] = {
-          txHash: tx.txNonce, // string length 64
+          txHash: cryptoUtils.hash(tx),
           index: outputIdx, // number
           spent: false,
           output: output
